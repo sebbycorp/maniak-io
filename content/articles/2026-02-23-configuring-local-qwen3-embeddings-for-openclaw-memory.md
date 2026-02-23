@@ -14,8 +14,6 @@ tags:
   - LocalAI
 ---
 
-# Configuring Local Qwen3 Embeddings for OpenClaw's Memory System
-
 OpenClaw's `memory_search` and `memory_get` tools power semantic recall across `MEMORY.md`, `memory/*.md`, and session transcripts. By default, they rely on cloud-based embedding APIs, but I've upgraded to a **fully local setup** using the lightweight Qwen3-Embedding-0.6B model in quantized GGUF format. This keeps everything private, fast, and offline.
 
 ## Model Specs
