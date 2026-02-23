@@ -11,7 +11,7 @@ theme = "bond"
   linkedinURL = "https://www.linkedin.com/in/maniakseb"
 
   [params.analytics]
-    google = "G-XXXXXXXXXX"  # Replace with your GA4 Measurement ID
+    google = "G-5Q8LLC20Q7"
 
 [menu]
   [[menu.main]]
