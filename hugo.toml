@@ -10,6 +10,9 @@ theme = "bond"
   twitterHandle = "sebbycorp"
   linkedinURL = "https://www.linkedin.com/in/maniakseb"
 
+  [params.analytics]
+    google = "G-XXXXXXXXXX"  # Replace with your GA4 Measurement ID
+
 [menu]
   [[menu.main]]
     name = "Home"
