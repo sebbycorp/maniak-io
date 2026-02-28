@@ -75,6 +75,25 @@ A good spec is:
 If your output keeps coming back “80% correct,” you don’t have a prompt problem.
 You have a spec + evaluation problem.
 
+#### What “specification engineering” actually means
+The video’s argument is simple: once agents can run for hours or days, you can’t rely on live back-and-forth to fix mistakes.
+
+So specification engineering becomes the skill of writing **agent-executable blueprints**:
+
+- **Self-contained**: no hidden assumptions, undefined acronyms, or missing “obvious” org context.
+- **Verifiable**: “done” is defined in checks that someone else can evaluate.
+- **Constrained**: must/must-not/preferences are explicit (plus what should be escalated).
+- **Decomposable**: the work can be broken into chunks that can be executed and verified independently.
+
+The broader implication: your *documents* become infrastructure. Strategy docs, product docs, runbooks, and OKRs all start acting like specs that agents (and humans) can execute.
+
+#### The five spec primitives (a useful mental model)
+1) **Self-contained problem statement**
+2) **Acceptance criteria** (verifiable “done”)
+3) **Constraint architecture** (must / must-not / preferences / escalate if)
+4) **Decomposition** (small, independently testable chunks)
+5) **Eval design** (test cases that catch regressions after model updates)
+
 ---
 
 ## The 2026 Prompting Checklist (copy/paste)
