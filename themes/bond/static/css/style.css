@@ -451,6 +451,26 @@ img {
   line-height: 1.5;
 }
 
+/* --- Dark theme: force code blocks to be high-contrast (no black text) --- */
+[data-theme="dark"] .article-single .content pre,
+[data-theme="dark"] .article-single .content .highlight pre {
+  background: #000 !important;
+  border-color: #222;
+}
+
+[data-theme="dark"] .article-single .content pre code,
+[data-theme="dark"] .article-single .content pre code span,
+[data-theme="dark"] .article-single .content .highlight code,
+[data-theme="dark"] .article-single .content .highlight span {
+  color: #f8f8f2 !important;
+}
+
+[data-theme="dark"] .article-single .content code {
+  color: #f8f8f2;
+  background: #000;
+  border-color: #222;
+}
+
 .article-single .content ul,
 .article-single .content ol {
   margin: 1rem 0 1.5rem 1.5rem;
