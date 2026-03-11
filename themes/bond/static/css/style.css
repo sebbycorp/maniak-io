@@ -447,6 +447,8 @@ img {
   padding: 0;
   border: none;
   color: var(--text);
+  font-size: 0.95em;
+  line-height: 1.5;
 }
 
 .article-single .content ul,
