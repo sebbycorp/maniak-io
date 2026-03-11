@@ -131,6 +131,10 @@ Both mechanisms share the same infrastructure:
 6. Their response is sent back as an A2A message
 7. The executor unblocks and the agent continues
 
+![Human-in-the-Loop flow: request, approval, execution, and feedback.](/images/articles/2026-03-11-human-in-the-loop-kagent/hitl-flow.jpg)
+
+*HITL flow: the agent proposes actions, a human approves/edits/rejects, and results feed back into the agent context.*
+
 This shared architecture means HITL is not a bolted-on feature — it's a core part of how kagent agents communicate. Adding approval to a new tool is a one-line YAML change, not a code change.
 
 ---
