@@ -1,6 +1,6 @@
 ---
 title: "How To: Run agentgateway standalone locally (UI + basic smoke test)"
-date: 2026-03-12T09:30:00-04:00
+date: 2026-03-12T08:04:00-04:00
 draft: false
 categories:
   - AI

@@ -1,6 +1,6 @@
 ---
 title: "agentgateway v1.0 (alpha): Why the 1.0 Line Matters (and What Changed)"
-date: 2026-03-12T09:20:00-04:00
+date: 2026-03-12T08:00:00-04:00
 draft: false
 categories:
   - AI

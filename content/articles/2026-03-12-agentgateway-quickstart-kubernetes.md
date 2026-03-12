@@ -1,6 +1,6 @@
 ---
 title: "How To: Install agentgateway on Kubernetes (Helm OCI)"
-date: 2026-03-12T09:25:00-04:00
+date: 2026-03-12T08:02:00-04:00
 draft: false
 categories:
   - Kubernetes
