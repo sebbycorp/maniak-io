@@ -66,11 +66,16 @@
 [data-theme="light"] .article-single .content code {
   background: #f0f0f0;
   border-color: #ddd;
+  color: #1a1a1a;
 }
 
 [data-theme="light"] .article-single .content pre {
-  background: #f5f5f5;
+  background: #f6f8fa;
   border-color: #ddd;
+}
+
+[data-theme="light"] .article-single .content pre code {
+  color: #24292e;
 }
 
 [data-theme="light"] .nav-toggle span {
@@ -451,24 +456,21 @@ img {
   line-height: 1.5;
 }
 
-/* --- Dark theme: force code blocks to be high-contrast (no black text) --- */
+/* --- Dark theme: readable code blocks --- */
 [data-theme="dark"] .article-single .content pre,
 [data-theme="dark"] .article-single .content .highlight pre {
-  background: #000 !important;
-  border-color: #222;
+  background: #282a36 !important;
+  border-color: #44475a;
 }
 
-[data-theme="dark"] .article-single .content pre code,
-[data-theme="dark"] .article-single .content pre code span,
-[data-theme="dark"] .article-single .content .highlight code,
-[data-theme="dark"] .article-single .content .highlight span {
+[data-theme="dark"] .article-single .content pre code {
   color: #f8f8f2 !important;
 }
 
 [data-theme="dark"] .article-single .content code {
-  color: #f8f8f2;
-  background: #000;
-  border-color: #222;
+  color: #50fa7b;
+  background: #282a36;
+  border-color: #44475a;
 }
 
 .article-single .content ul,
