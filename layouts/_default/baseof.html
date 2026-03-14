@@ -79,6 +79,100 @@
         });
       }
     });
+
+    // Search
+    (function() {
+      var input = document.getElementById('search-input');
+      var results = document.getElementById('search-results');
+      if (!input || !results) return;
+      var articles = null;
+
+      function loadIndex() {
+        if (articles) return Promise.resolve(articles);
+        return fetch('/index.json')
+          .then(function(r) { return r.json(); })
+          .then(function(data) { articles = data; return data; });
+      }
+
+      function esc(s) { return s.replace(/[&<>"']/g, function(c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+      function highlightMatch(text, query) {
+        if (!query) return esc(text);
+        var safe = esc(text);
+        var regex = new RegExp('(' + query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+        return safe.replace(regex, '<mark>$1</mark>');
+      }
+
+      function doSearch(query) {
+        if (!query || query.length < 2) {
+          results.innerHTML = '';
+          results.style.display = 'none';
+          return;
+        }
+        loadIndex().then(function(data) {
+          var q = query.toLowerCase();
+          var matches = data.filter(function(a) {
+            return a.title.toLowerCase().indexOf(q) !== -1 ||
+                   a.content.toLowerCase().indexOf(q) !== -1 ||
+                   (a.tags && a.tags.some(function(t) { return t.toLowerCase().indexOf(q) !== -1; })) ||
+                   (a.categories && a.categories.some(function(c) { return c.toLowerCase().indexOf(q) !== -1; }));
+          });
+
+          if (!matches.length) {
+            results.innerHTML = '<div class="search-empty">No results for "' + esc(query) + '"</div>';
+            results.style.display = 'block';
+            return;
+          }
+
+          var html = matches.slice(0, 6).map(function(a) {
+            var tags = (a.tags || []).slice(0, 3).map(function(t) {
+              return '<span class="tag-pill tag-sm">' + esc(t) + '</span>';
+            }).join('');
+            return '<a href="' + a.url + '" class="search-result-item">' +
+              '<div class="search-result-title">' + highlightMatch(a.title, query) + '</div>' +
+              '<div class="search-result-meta">' + esc(a.date) + (tags ? ' ' + tags : '') + '</div>' +
+              '</a>';
+          }).join('');
+
+          results.innerHTML = html;
+          results.style.display = 'block';
+        });
+      }
+
+      var timer;
+      input.addEventListener('input', function() {
+        clearTimeout(timer);
+        timer = setTimeout(function() { doSearch(input.value.trim()); }, 200);
+      });
+
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          input.value = '';
+          results.innerHTML = '';
+          results.style.display = 'none';
+          input.blur();
+        }
+      });
+
+      input.addEventListener('focus', function() {
+        if (input.value.trim().length >= 2) doSearch(input.value.trim());
+      });
+
+      // Close results when clicking outside
+      document.addEventListener('click', function(e) {
+        if (!e.target.closest('.header-search')) {
+          results.style.display = 'none';
+        }
+      });
+
+      // / shortcut to focus
+      document.addEventListener('keydown', function(e) {
+        if (e.key === '/' && document.activeElement !== input && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+          input.focus();
+        }
+      });
+    })();
   </script>
 </body>
 </html>

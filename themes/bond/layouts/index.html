@@ -1,16 +1,6 @@
 {{ define "main" }}
 {{ $articles := where .Site.RegularPages "Section" "articles" }}
 
-<!-- Search Bar -->
-<section class="search-section">
-  <div class="search-box">
-    <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    <input type="text" id="search-input" placeholder="Search articles..." autocomplete="off">
-    <kbd class="search-hint">ESC to clear</kbd>
-  </div>
-  <div id="search-results" class="search-results"></div>
-</section>
-
 <!-- Category + Tag Filters -->
 <section class="filter-bar">
   {{ with .Site.Taxonomies.categories }}
@@ -144,85 +134,4 @@
   </div>
 </section>
 
-<!-- Search JS -->
-<script>
-(function() {
-  var input = document.getElementById('search-input');
-  var results = document.getElementById('search-results');
-  var articles = null;
-
-  function loadIndex() {
-    if (articles) return Promise.resolve(articles);
-    return fetch('/index.json')
-      .then(function(r) { return r.json(); })
-      .then(function(data) { articles = data; return data; });
-  }
-
-  function highlightMatch(text, query) {
-    if (!query) return text;
-    var regex = new RegExp('(' + query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
-    return text.replace(regex, '<mark>$1</mark>');
-  }
-
-  function doSearch(query) {
-    if (!query || query.length < 2) {
-      results.innerHTML = '';
-      results.style.display = 'none';
-      return;
-    }
-    loadIndex().then(function(data) {
-      var q = query.toLowerCase();
-      var matches = data.filter(function(a) {
-        return a.title.toLowerCase().indexOf(q) !== -1 ||
-               a.content.toLowerCase().indexOf(q) !== -1 ||
-               (a.tags && a.tags.some(function(t) { return t.toLowerCase().indexOf(q) !== -1; })) ||
-               (a.categories && a.categories.some(function(c) { return c.toLowerCase().indexOf(q) !== -1; }));
-      });
-
-      if (!matches.length) {
-        results.innerHTML = '<div class="search-empty">No articles found for "' + query + '"</div>';
-        results.style.display = 'block';
-        return;
-      }
-
-      var html = matches.slice(0, 8).map(function(a) {
-        var tags = (a.tags || []).map(function(t) {
-          return '<span class="tag-pill tag-sm">' + t + '</span>';
-        }).join('');
-        return '<a href="' + a.url + '" class="search-result-item">' +
-          '<div class="search-result-title">' + highlightMatch(a.title, query) + '</div>' +
-          '<div class="search-result-meta">' + a.date + (tags ? ' &middot; ' + tags : '') + '</div>' +
-          '<div class="search-result-summary">' + highlightMatch(a.summary.substring(0, 120), query) + '...</div>' +
-          '</a>';
-      }).join('');
-
-      results.innerHTML = html;
-      results.style.display = 'block';
-    });
-  }
-
-  var debounceTimer;
-  input.addEventListener('input', function() {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(function() { doSearch(input.value.trim()); }, 200);
-  });
-
-  input.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-      input.value = '';
-      results.innerHTML = '';
-      results.style.display = 'none';
-      input.blur();
-    }
-  });
-
-  // Keyboard shortcut: / to focus search
-  document.addEventListener('keydown', function(e) {
-    if (e.key === '/' && document.activeElement !== input && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
-      e.preventDefault();
-      input.focus();
-    }
-  });
-})();
-</script>
 {{ end }}
