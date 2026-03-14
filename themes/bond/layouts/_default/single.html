@@ -3,9 +3,94 @@
   <header>
     <div class="meta">{{ .Date.Format "02 Jan 2006" }}</div>
     <h1>{{ .Title }}</h1>
+    <button id="listen-btn" class="listen-btn" aria-label="Listen to this article">
+      <svg id="listen-icon-play" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+      <svg id="listen-icon-stop" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+      <span id="listen-label">Listen</span>
+    </button>
   </header>
   <div class="content">
     {{ .Content }}
   </div>
 </article>
+
+<script>
+(function() {
+  const btn = document.getElementById('listen-btn');
+  const label = document.getElementById('listen-label');
+  const iconPlay = document.getElementById('listen-icon-play');
+  const iconStop = document.getElementById('listen-icon-stop');
+  const synth = window.speechSynthesis;
+
+  if (!synth) {
+    btn.style.display = 'none';
+    return;
+  }
+
+  let speaking = false;
+
+  function stop() {
+    synth.cancel();
+    speaking = false;
+    label.textContent = 'Listen';
+    iconPlay.style.display = '';
+    iconStop.style.display = 'none';
+    btn.classList.remove('listening');
+  }
+
+  function getArticleText() {
+    const content = document.querySelector('.article-single .content');
+    const clone = content.cloneNode(true);
+    clone.querySelectorAll('pre, code, .mermaid, svg').forEach(el => el.remove());
+    return clone.textContent.replace(/\s+/g, ' ').trim();
+  }
+
+  btn.addEventListener('click', function() {
+    if (speaking) {
+      stop();
+      return;
+    }
+
+    const text = getArticleText();
+    if (!text) return;
+
+    // Split into chunks under 200 chars at sentence boundaries (browser limit workaround)
+    const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [text];
+    const chunks = [];
+    let current = '';
+    sentences.forEach(function(s) {
+      if ((current + s).length > 200) {
+        if (current) chunks.push(current.trim());
+        current = s;
+      } else {
+        current += s;
+      }
+    });
+    if (current) chunks.push(current.trim());
+
+    speaking = true;
+    label.textContent = 'Stop';
+    iconPlay.style.display = 'none';
+    iconStop.style.display = '';
+    btn.classList.add('listening');
+
+    let i = 0;
+    function speakNext() {
+      if (i >= chunks.length || !speaking) {
+        stop();
+        return;
+      }
+      const utter = new SpeechSynthesisUtterance(chunks[i]);
+      utter.rate = 1;
+      utter.onend = function() { i++; speakNext(); };
+      utter.onerror = function() { stop(); };
+      synth.speak(utter);
+    }
+    speakNext();
+  });
+
+  // Clean up if user navigates away
+  window.addEventListener('beforeunload', function() { synth.cancel(); });
+})();
+</script>
 {{ end }}
