@@ -3,11 +3,14 @@
   <header>
     <div class="meta">{{ .Date.Format "02 Jan 2006" }}</div>
     <h1>{{ .Title }}</h1>
-    <button id="listen-btn" class="listen-btn" aria-label="Listen to this article">
-      <svg id="listen-icon-play" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-      <svg id="listen-icon-stop" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
-      <span id="listen-label">Listen</span>
-    </button>
+    <div class="listen-controls">
+      <button id="listen-btn" class="listen-btn" aria-label="Listen to this article">
+        <svg id="listen-icon-play" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+        <svg id="listen-icon-stop" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+        <span id="listen-label">Listen</span>
+      </button>
+      <select id="voice-select" class="voice-select" aria-label="Select voice"></select>
+    </div>
   </header>
   <div class="content">
     {{ .Content }}
@@ -20,14 +23,67 @@
   const label = document.getElementById('listen-label');
   const iconPlay = document.getElementById('listen-icon-play');
   const iconStop = document.getElementById('listen-icon-stop');
+  const voiceSelect = document.getElementById('voice-select');
   const synth = window.speechSynthesis;
 
   if (!synth) {
-    btn.style.display = 'none';
+    btn.parentElement.style.display = 'none';
     return;
   }
 
   let speaking = false;
+  let voices = [];
+
+  // Keywords that indicate higher-quality / more natural voices
+  const preferredKeywords = [
+    'natural', 'premium', 'enhanced', 'neural', 'siri',
+    'google uk english', 'google us english',
+    'samantha', 'karen', 'daniel', 'moira', 'tessa',
+    'microsoft aria', 'microsoft guy', 'microsoft jenny'
+  ];
+
+  function populateVoices() {
+    voices = synth.getVoices().filter(function(v) { return v.lang.startsWith('en'); });
+    if (!voices.length) return;
+
+    voiceSelect.innerHTML = '';
+    var savedVoice = localStorage.getItem('listen-voice');
+    var bestIdx = 0;
+
+    voices.forEach(function(v, i) {
+      var opt = document.createElement('option');
+      var tag = v.localService ? '' : ' (network)';
+      opt.value = i;
+      opt.textContent = v.name + tag;
+      voiceSelect.appendChild(opt);
+
+      // Auto-select: saved preference > preferred natural voice > first
+      if (savedVoice && v.name === savedVoice) {
+        bestIdx = i;
+      } else if (!savedVoice) {
+        var nameLower = v.name.toLowerCase();
+        for (var k = 0; k < preferredKeywords.length; k++) {
+          if (nameLower.indexOf(preferredKeywords[k]) !== -1) {
+            bestIdx = i;
+            break;
+          }
+        }
+      }
+    });
+
+    voiceSelect.value = bestIdx;
+  }
+
+  // Voices load async in some browsers
+  populateVoices();
+  if (synth.onvoiceschanged !== undefined) {
+    synth.onvoiceschanged = populateVoices;
+  }
+
+  voiceSelect.addEventListener('change', function() {
+    var v = voices[voiceSelect.value];
+    if (v) localStorage.setItem('listen-voice', v.name);
+  });
 
   function stop() {
     synth.cancel();
@@ -39,10 +95,14 @@
   }
 
   function getArticleText() {
-    const content = document.querySelector('.article-single .content');
-    const clone = content.cloneNode(true);
-    clone.querySelectorAll('pre, code, .mermaid, svg').forEach(el => el.remove());
+    var content = document.querySelector('.article-single .content');
+    var clone = content.cloneNode(true);
+    clone.querySelectorAll('pre, code, .mermaid, svg').forEach(function(el) { el.remove(); });
     return clone.textContent.replace(/\s+/g, ' ').trim();
+  }
+
+  function getSelectedVoice() {
+    return voices[voiceSelect.value] || null;
   }
 
   btn.addEventListener('click', function() {
@@ -51,13 +111,13 @@
       return;
     }
 
-    const text = getArticleText();
+    var text = getArticleText();
     if (!text) return;
 
-    // Split into chunks under 200 chars at sentence boundaries (browser limit workaround)
-    const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [text];
-    const chunks = [];
-    let current = '';
+    // Split into chunks under 200 chars at sentence boundaries
+    var sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [text];
+    var chunks = [];
+    var current = '';
     sentences.forEach(function(s) {
       if ((current + s).length > 200) {
         if (current) chunks.push(current.trim());
@@ -74,14 +134,16 @@
     iconStop.style.display = '';
     btn.classList.add('listening');
 
-    let i = 0;
+    var selectedVoice = getSelectedVoice();
+    var i = 0;
     function speakNext() {
       if (i >= chunks.length || !speaking) {
         stop();
         return;
       }
-      const utter = new SpeechSynthesisUtterance(chunks[i]);
+      var utter = new SpeechSynthesisUtterance(chunks[i]);
       utter.rate = 1;
+      if (selectedVoice) utter.voice = selectedVoice;
       utter.onend = function() { i++; speakNext(); };
       utter.onerror = function() { stop(); };
       synth.speak(utter);
@@ -89,7 +151,6 @@
     speakNext();
   });
 
-  // Clean up if user navigates away
   window.addEventListener('beforeunload', function() { synth.cancel(); });
 })();
 </script>

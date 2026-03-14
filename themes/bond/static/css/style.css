@@ -852,12 +852,18 @@ img {
   }
 }
 
-/* Listen Button */
+/* Listen Controls */
+.listen-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
 .listen-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  margin-top: 0.75rem;
   padding: 0.5rem 1rem;
   background: var(--bg-surface);
   color: var(--accent);
@@ -879,6 +885,33 @@ img {
   border-color: var(--accent);
   color: var(--accent);
   animation: pulse-glow 2s ease-in-out infinite;
+}
+.voice-select {
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-surface);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  max-width: 220px;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23666'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2rem;
+}
+.voice-select:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.voice-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
 }
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 4px var(--accent-glow); }
