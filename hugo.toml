@@ -44,5 +44,9 @@ theme = "bond"
     lineNos = false
     guessSyntax = true
 
+[taxonomies]
+  tag = "tags"
+  category = "categories"
+
 [outputs]
-  home = ["HTML"]
+  home = ["HTML", "JSON"]

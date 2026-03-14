@@ -1,0 +1,31 @@
+{{ define "main" }}
+<div class="section-header">
+  <h2>Tag: {{ .Title }}</h2>
+  <p>{{ len .Pages }} article{{ if gt (len .Pages) 1 }}s{{ end }} tagged "{{ .Title }}"</p>
+</div>
+<div class="tag-cloud" style="margin-bottom: 2rem;">
+  {{ range .Site.Taxonomies.tags }}
+  <a href="{{ .Page.Permalink }}" class="tag-pill{{ if eq .Page.Title $.Title }} tag-active{{ end }}">
+    {{ .Page.Title }} <span class="tag-count">{{ .Count }}</span>
+  </a>
+  {{ end }}
+</div>
+<div class="comic-grid">
+  {{ range $i, $p := .Pages }}
+  <div class="article-card{{ if eq $i 0 }} card-featured{{ end }}">
+    <a href="{{ $p.Permalink }}">
+      <div class="card-accent-bar"></div>
+      <div class="card-body">
+        <div class="meta">{{ $p.Date.Format "02 Jan 2006" }}</div>
+        <h3>{{ $p.Title }}</h3>
+        <div class="card-tags">
+          {{ range $p.Params.tags }}<span class="tag-pill tag-sm">{{ . }}</span>{{ end }}
+        </div>
+        <p class="summary">{{ $p.Summary | truncate 150 }}</p>
+        <span class="read-more">Read more</span>
+      </div>
+    </a>
+  </div>
+  {{ end }}
+</div>
+{{ end }}

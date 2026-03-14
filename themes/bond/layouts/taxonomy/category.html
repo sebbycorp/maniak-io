@@ -1,28 +1,18 @@
 {{ define "main" }}
 <div class="section-header">
   <h2>{{ .Title }}</h2>
-  {{ with .Description }}<p>{{ . }}</p>{{ end }}
+  <p>{{ len .Pages }} article{{ if gt (len .Pages) 1 }}s{{ end }} in "{{ .Title }}"</p>
 </div>
-
-{{ if eq .Section "articles" }}
-<!-- Tag filter for articles list -->
-{{ with .Site.Taxonomies.tags }}
-<div class="filter-bar" style="margin-bottom: 2rem;">
-  <div class="filter-group">
-    <span class="filter-label">Filter by tag:</span>
-    <div class="tag-scroll">
-      {{ range .ByCount }}
-      <a href="{{ .Page.Permalink }}" class="tag-pill tag-sm">{{ .Page.Title }} <span class="tag-count">{{ .Count }}</span></a>
-      {{ end }}
-    </div>
-  </div>
+<div class="category-nav" style="margin-bottom: 2rem;">
+  {{ range .Site.Taxonomies.categories }}
+  <a href="{{ .Page.Permalink }}" class="category-pill{{ if eq .Page.Title $.Title }} category-active{{ end }}">
+    {{ .Page.Title }} <span class="tag-count">{{ .Count }}</span>
+  </a>
+  {{ end }}
 </div>
-{{ end }}
-{{ end }}
-
 <div class="comic-grid">
   {{ range $i, $p := .Pages }}
-  <div class="article-card{{ if eq $i 0 }} card-featured{{ end }}{{ if and (gt $i 0) (lt $i 3) }} card-wide{{ end }}">
+  <div class="article-card{{ if eq $i 0 }} card-featured{{ end }}">
     <a href="{{ $p.Permalink }}">
       <div class="card-accent-bar"></div>
       <div class="card-body">

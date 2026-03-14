@@ -1,0 +1,14 @@
+{{ define "main" }}
+<div class="section-header">
+  <h2>Categories</h2>
+  <p>Browse articles by category</p>
+</div>
+<div class="tags-overview">
+  {{ range .Site.Taxonomies.categories.Alphabetical }}
+  <a href="{{ .Page.Permalink }}" class="tag-card category-card">
+    <span class="tag-card-name">{{ .Page.Title }}</span>
+    <span class="tag-card-count">{{ .Count }}</span>
+  </a>
+  {{ end }}
+</div>
+{{ end }}
