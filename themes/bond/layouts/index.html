@@ -1,48 +1,75 @@
 {{ define "main" }}
-<!-- Articles -->
-<section class="home-section first-section">
+{{ $articles := where .Site.RegularPages "Section" "articles" }}
+
+<!-- Hero: Latest Article as splash panel -->
+{{ with index $articles 0 }}
+<section class="hero-panel">
+  <a href="{{ .Permalink }}" class="hero-link">
+    <div class="hero-badge">Latest</div>
+    <div class="hero-content">
+      <div class="meta">{{ .Date.Format "02 Jan 2006" }}</div>
+      <h1>{{ .Title }}</h1>
+      <p class="hero-summary">{{ .Summary | truncate 250 }}</p>
+      <span class="hero-cta">Read the full story</span>
+    </div>
+  </a>
+</section>
+{{ end }}
+
+<!-- Articles: Comic Panel Grid -->
+<section class="home-section">
   <div class="section-header">
     <h2>Articles</h2>
   </div>
-  <div class="articles-grid">
-    {{ range (where .Site.RegularPages "Section" "articles") }}
-    <div class="article-card">
-      <a href="{{ .Permalink }}">
-        <div class="meta">{{ .Date.Format "02 Jan 2006" }}</div>
-        <h3>{{ .Title }}</h3>
-        <p class="summary">{{ .Summary | truncate 150 }}</p>
-        <span class="read-more">Read more</span>
+  <div class="comic-grid">
+    {{ range $i, $p := (after 1 $articles) }}
+    <div class="article-card{{ if lt $i 2 }} card-wide{{ end }}{{ if eq (mod $i 5) 4 }} card-tall{{ end }}">
+      <a href="{{ $p.Permalink }}">
+        <div class="card-accent-bar"></div>
+        <div class="card-body">
+          <div class="meta">{{ $p.Date.Format "02 Jan 2006" }}</div>
+          <h3>{{ $p.Title }}</h3>
+          <p class="summary">{{ $p.Summary | truncate 120 }}</p>
+          <span class="read-more">Read more</span>
+        </div>
       </a>
     </div>
     {{ end }}
   </div>
 </section>
 
-<!-- YouTube -->
+<!-- YouTube: Featured Panel -->
 <section class="home-section">
   <div class="section-header">
     <h2>YouTube</h2>
     <p>Latest videos and live streams</p>
   </div>
-  <div class="video-container">
-    <iframe
-      src="https://www.youtube.com/embed/videoseries?list=UUAP1CQwTOLlplBAODlmF2Vw"
-      title="Latest YouTube Video"
-      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-      allowfullscreen>
-    </iframe>
+  <div class="youtube-panel">
+    <div class="video-container">
+      <iframe
+        src="https://www.youtube.com/embed/videoseries?list=UUAP1CQwTOLlplBAODlmF2Vw"
+        title="Latest YouTube Video"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen>
+      </iframe>
+    </div>
+    <div class="youtube-sidebar">
+      <div class="speech-bubble">
+        <p>Subscribe for tech deep-dives, live coding, and architecture breakdowns!</p>
+      </div>
+      <a href="{{ "youtube/" | relURL }}" class="section-link">View Channel</a>
+    </div>
   </div>
-  <a href="{{ "youtube/" | relURL }}" class="section-link">View Channel</a>
 </section>
 
-<!-- Social Feeds -->
+<!-- Social: Comic Panels -->
 <section class="home-section social-feed">
   <div class="section-header">
-    <h2>Social</h2>
-    <p>Latest from X and LinkedIn</p>
+    <h2>Connect</h2>
+    <p>Follow the adventure across platforms</p>
   </div>
-  <div class="social-grid">
-    <div class="feed-column">
+  <div class="social-panels">
+    <div class="social-panel panel-twitter">
       <h3>X / Twitter</h3>
       <div class="feed-embed twitter-embed-wrapper">
         <a class="twitter-timeline"
@@ -54,16 +81,25 @@
         <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
       </div>
     </div>
-    <div class="feed-column">
-      <h3>Connect</h3>
-      <div class="feed-embed connect-panel">
-        <p>Follow the conversation across platforms</p>
-        <div class="connect-links">
-          <a href="https://x.com/SebbyCorp/articles" target="_blank" rel="noopener" class="channel-link">Articles on X</a>
-          <a href="https://x.com/sebbycorp" target="_blank" rel="noopener" class="channel-link">Follow on X</a>
-          <a href="{{ .Site.Params.youtubeChannel }}" target="_blank" rel="noopener" class="channel-link">Subscribe on YouTube</a>
-          <a href="{{ .Site.Params.linkedinURL }}" target="_blank" rel="noopener" class="channel-link">LinkedIn</a>
-        </div>
+    <div class="social-links-panel">
+      <h3>Join the Team</h3>
+      <div class="link-cards">
+        <a href="https://x.com/SebbyCorp/articles" target="_blank" rel="noopener" class="link-card card-red">
+          <span class="link-icon">&#x1D4E7;</span>
+          <span>Articles on X</span>
+        </a>
+        <a href="https://x.com/sebbycorp" target="_blank" rel="noopener" class="link-card card-blue">
+          <span class="link-icon">&#x1D4E7;</span>
+          <span>Follow on X</span>
+        </a>
+        <a href="{{ .Site.Params.youtubeChannel }}" target="_blank" rel="noopener" class="link-card card-green">
+          <span class="link-icon">&#9654;</span>
+          <span>YouTube</span>
+        </a>
+        <a href="{{ .Site.Params.linkedinURL }}" target="_blank" rel="noopener" class="link-card card-purple">
+          <span class="link-icon">&#x1F4BC;</span>
+          <span>LinkedIn</span>
+        </a>
       </div>
     </div>
   </div>
