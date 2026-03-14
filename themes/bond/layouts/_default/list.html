@@ -4,38 +4,50 @@
   {{ with .Description }}<p>{{ . }}</p>{{ end }}
 </div>
 
-{{ if eq .Section "articles" }}
-<!-- Tag filter for articles list -->
-{{ with .Site.Taxonomies.tags }}
-<div class="filter-bar" style="margin-bottom: 2rem;">
-  <div class="filter-group">
-    <span class="filter-label">Filter by tag:</span>
-    <div class="tag-scroll">
-      {{ range .ByCount }}
-      <a href="{{ .Page.Permalink }}" class="tag-pill tag-sm">{{ .Page.Title }} <span class="tag-count">{{ .Count }}</span></a>
+<div class="content-with-sidebar">
+  <div class="main-content">
+    <div class="comic-grid">
+      {{ range $i, $p := .Pages }}
+      <div class="article-card{{ if eq $i 0 }} card-featured{{ end }}{{ if and (gt $i 0) (lt $i 3) }} card-wide{{ end }}">
+        <a href="{{ $p.Permalink }}">
+          <div class="card-accent-bar"></div>
+          <div class="card-body">
+            <div class="meta">{{ $p.Date.Format "02 Jan 2006" }}</div>
+            <h3>{{ $p.Title }}</h3>
+            <div class="card-tags">
+              {{ range $p.Params.tags }}<span class="tag-pill tag-sm">{{ . }}</span>{{ end }}
+            </div>
+            <p class="summary">{{ $p.Summary | truncate 150 }}</p>
+            <span class="read-more">Read more</span>
+          </div>
+        </a>
+      </div>
       {{ end }}
     </div>
   </div>
-</div>
-{{ end }}
-{{ end }}
 
-<div class="comic-grid">
-  {{ range $i, $p := .Pages }}
-  <div class="article-card{{ if eq $i 0 }} card-featured{{ end }}{{ if and (gt $i 0) (lt $i 3) }} card-wide{{ end }}">
-    <a href="{{ $p.Permalink }}">
-      <div class="card-accent-bar"></div>
-      <div class="card-body">
-        <div class="meta">{{ $p.Date.Format "02 Jan 2006" }}</div>
-        <h3>{{ $p.Title }}</h3>
-        <div class="card-tags">
-          {{ range $p.Params.tags }}<span class="tag-pill tag-sm">{{ . }}</span>{{ end }}
-        </div>
-        <p class="summary">{{ $p.Summary | truncate 150 }}</p>
-        <span class="read-more">Read more</span>
+  <aside class="sidebar">
+    {{ with .Site.Taxonomies.categories }}
+    <div class="sidebar-section">
+      <h3 class="sidebar-title">Categories</h3>
+      <div class="sidebar-items">
+        {{ range .Alphabetical }}
+        <a href="{{ .Page.Permalink }}" class="category-pill">{{ .Page.Title }} <span class="tag-count">{{ .Count }}</span></a>
+        {{ end }}
       </div>
-    </a>
-  </div>
-  {{ end }}
+    </div>
+    {{ end }}
+
+    {{ with .Site.Taxonomies.tags }}
+    <div class="sidebar-section">
+      <h3 class="sidebar-title">Tags</h3>
+      <div class="sidebar-items">
+        {{ range .ByCount }}
+        <a href="{{ .Page.Permalink }}" class="tag-pill tag-sm">{{ .Page.Title }} <span class="tag-count">{{ .Count }}</span></a>
+        {{ end }}
+      </div>
+    </div>
+    {{ end }}
+  </aside>
 </div>
 {{ end }}

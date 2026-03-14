@@ -1123,9 +1123,36 @@ img { max-width: 100%; height: auto; }
 }
 
 /* --- Responsive --- */
+/* Sidebar makes main area narrower, so 2-col grid */
+.content-with-sidebar .comic-grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.content-with-sidebar .article-card.card-featured {
+  grid-column: 1 / -1;
+}
+
+.content-with-sidebar .article-card.card-wide {
+  grid-column: span 1;
+}
+
 @media (max-width: 900px) {
+  .content-with-sidebar {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .sidebar-section {
+    flex: 1;
+    min-width: 250px;
+  }
   .comic-grid,
-  .articles-grid {
+  .articles-grid,
+  .content-with-sidebar .comic-grid {
     grid-template-columns: repeat(2, 1fr);
   }
   .article-card.card-wide { grid-column: span 1; }
@@ -1185,7 +1212,8 @@ img { max-width: 100%; height: auto; }
 
 @media (max-width: 600px) {
   .comic-grid,
-  .articles-grid {
+  .articles-grid,
+  .content-with-sidebar .comic-grid {
     grid-template-columns: 1fr;
   }
   .article-card.card-wide,
@@ -1193,6 +1221,12 @@ img { max-width: 100%; height: auto; }
     grid-column: span 1;
   }
   .link-cards { grid-template-columns: 1fr; }
+  .sidebar {
+    flex-direction: column;
+  }
+  .sidebar-section {
+    min-width: unset;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1488,32 +1522,50 @@ img { max-width: 100%; height: auto; }
   margin-top: 0.75rem;
 }
 
-/* --- Filter Bar --- */
-.filter-bar {
-  margin-bottom: 1.5rem;
+/* --- Content + Sidebar Layout --- */
+.content-with-sidebar {
+  display: grid;
+  grid-template-columns: 1fr 240px;
+  gap: 2rem;
+  align-items: start;
 }
 
-.filter-group {
+.main-content {
+  min-width: 0;
+}
+
+.sidebar {
+  position: sticky;
+  top: 80px;
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.75rem;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-.filter-label {
+.sidebar-section {
+  background: var(--bg-surface);
+  border: var(--border-thick);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 1.25rem;
+  overflow: hidden;
+}
+
+.sidebar-title {
   font-family: var(--font-heading);
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  letter-spacing: 0.04em;
+  font-size: 1rem;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  flex-shrink: 0;
+  color: var(--text);
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 3px solid var(--comic-red);
 }
 
-.tag-scroll {
+.sidebar-items {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  gap: 0.4rem;
 }
 
 /* --- Tags Overview (all tags page) --- */

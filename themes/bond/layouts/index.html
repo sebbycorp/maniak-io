@@ -1,28 +1,6 @@
 {{ define "main" }}
 {{ $articles := where .Site.RegularPages "Section" "articles" }}
 
-<!-- Category + Tag Filters -->
-<section class="filter-bar">
-  {{ with .Site.Taxonomies.categories }}
-  <div class="filter-group">
-    <span class="filter-label">Categories:</span>
-    {{ range .Alphabetical }}
-    <a href="{{ .Page.Permalink }}" class="category-pill">{{ .Page.Title }} <span class="tag-count">{{ .Count }}</span></a>
-    {{ end }}
-  </div>
-  {{ end }}
-  {{ with .Site.Taxonomies.tags }}
-  <div class="filter-group">
-    <span class="filter-label">Tags:</span>
-    <div class="tag-scroll">
-      {{ range .ByCount }}
-      <a href="{{ .Page.Permalink }}" class="tag-pill tag-sm">{{ .Page.Title }} <span class="tag-count">{{ .Count }}</span></a>
-      {{ end }}
-    </div>
-  </div>
-  {{ end }}
-</section>
-
 <!-- Hero: Latest Article as splash panel -->
 {{ with index $articles 0 }}
 <section class="hero-panel">
@@ -42,28 +20,58 @@
 </section>
 {{ end }}
 
-<!-- Articles: Comic Panel Grid -->
+<!-- Articles + Sidebar layout -->
 <section class="home-section">
   <div class="section-header">
     <h2>Articles</h2>
   </div>
-  <div class="comic-grid">
-    {{ range $i, $p := (after 1 $articles) }}
-    <div class="article-card{{ if lt $i 2 }} card-wide{{ end }}{{ if eq (mod $i 5) 4 }} card-tall{{ end }}">
-      <a href="{{ $p.Permalink }}">
-        <div class="card-accent-bar"></div>
-        <div class="card-body">
-          <div class="meta">{{ $p.Date.Format "02 Jan 2006" }}</div>
-          <h3>{{ $p.Title }}</h3>
-          <div class="card-tags">
-            {{ range $p.Params.tags }}<span class="tag-pill tag-sm">{{ . }}</span>{{ end }}
-          </div>
-          <p class="summary">{{ $p.Summary | truncate 120 }}</p>
-          <span class="read-more">Read more</span>
+  <div class="content-with-sidebar">
+    <!-- Main: Article Grid -->
+    <div class="main-content">
+      <div class="comic-grid">
+        {{ range $i, $p := (after 1 $articles) }}
+        <div class="article-card{{ if lt $i 2 }} card-wide{{ end }}">
+          <a href="{{ $p.Permalink }}">
+            <div class="card-accent-bar"></div>
+            <div class="card-body">
+              <div class="meta">{{ $p.Date.Format "02 Jan 2006" }}</div>
+              <h3>{{ $p.Title }}</h3>
+              <div class="card-tags">
+                {{ range $p.Params.tags }}<span class="tag-pill tag-sm">{{ . }}</span>{{ end }}
+              </div>
+              <p class="summary">{{ $p.Summary | truncate 120 }}</p>
+              <span class="read-more">Read more</span>
+            </div>
+          </a>
         </div>
-      </a>
+        {{ end }}
+      </div>
     </div>
-    {{ end }}
+
+    <!-- Sidebar: Categories + Tags -->
+    <aside class="sidebar">
+      {{ with .Site.Taxonomies.categories }}
+      <div class="sidebar-section">
+        <h3 class="sidebar-title">Categories</h3>
+        <div class="sidebar-items">
+          {{ range .Alphabetical }}
+          <a href="{{ .Page.Permalink }}" class="category-pill">{{ .Page.Title }} <span class="tag-count">{{ .Count }}</span></a>
+          {{ end }}
+        </div>
+      </div>
+      {{ end }}
+
+      {{ with .Site.Taxonomies.tags }}
+      <div class="sidebar-section">
+        <h3 class="sidebar-title">Tags</h3>
+        <div class="sidebar-items">
+          {{ range .ByCount }}
+          <a href="{{ .Page.Permalink }}" class="tag-pill tag-sm">{{ .Page.Title }} <span class="tag-count">{{ .Count }}</span></a>
+          {{ end }}
+        </div>
+      </div>
+      {{ end }}
+    </aside>
   </div>
 </section>
 
