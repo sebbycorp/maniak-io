@@ -3,30 +3,62 @@
 {{ $latest3 := first 3 $articles }}
 {{ $rest := after 3 $articles }}
 
-<!-- Latest 3 Articles: Top Feature -->
-<section class="latest-articles">
-  <div class="section-header">
-    <h2>Latest Articles</h2>
-  </div>
-  <div class="latest-grid">
-    {{ range $i, $p := $latest3 }}
-    <div class="latest-card{{ if eq $i 0 }} latest-featured{{ end }}">
-      <a href="{{ $p.Permalink }}">
-        <div class="card-accent-bar"></div>
-        <div class="card-body">
-          {{ if eq $i 0 }}<div class="hero-badge">New</div>{{ end }}
-          <div class="meta">{{ $p.Date.Format "02 Jan 2006" }}</div>
-          <h3>{{ $p.Title }}</h3>
-          <div class="card-tags">
-            {{ range $p.Params.categories }}<span class="category-pill" style="font-size:0.7rem;padding:0.1rem 0.5rem;">{{ . }}</span>{{ end }}
-            {{ range $p.Params.tags }}<span class="tag-pill tag-sm">{{ . }}</span>{{ end }}
+<!-- Latest 3 Articles: Comic Panels -->
+<section class="comic-panels-section">
+  <div class="comic-panels-strip">
+
+    <!-- Panel 1: SPLASH — big dramatic panel -->
+    {{ with index $latest3 0 }}
+    <a href="{{ .Permalink }}" class="comic-panel panel-splash">
+      <div class="panel-inner">
+        <div class="starburst">NEW!</div>
+        <div class="panel-caption caption-top">{{ .Date.Format "02 Jan 2006" }}</div>
+        <h2 class="panel-title">{{ .Title }}</h2>
+        <div class="panel-tags">
+          {{ range .Params.tags }}<span class="tag-pill tag-pill-hero">{{ . }}</span>{{ end }}
+        </div>
+        <p class="panel-text">{{ .Summary | truncate 200 }}</p>
+        <span class="panel-action">Read more!</span>
+      </div>
+    </a>
+    {{ end }}
+
+    <div class="comic-panels-side">
+      <!-- Panel 2: NARRATION BOX style -->
+      {{ with index $latest3 1 }}
+      <a href="{{ .Permalink }}" class="comic-panel panel-narration">
+        <div class="panel-inner">
+          <div class="narration-box">
+            <span class="narration-label">Meanwhile...</span>
           </div>
-          <p class="summary">{{ if eq $i 0 }}{{ $p.Summary | truncate 250 }}{{ else }}{{ $p.Summary | truncate 120 }}{{ end }}</p>
-          <span class="read-more">Read more</span>
+          <h3 class="panel-title">{{ .Title }}</h3>
+          <div class="panel-tags">
+            {{ range .Params.tags }}<span class="tag-pill tag-sm">{{ . }}</span>{{ end }}
+          </div>
+          <p class="panel-text">{{ .Summary | truncate 130 }}</p>
+          <div class="panel-caption caption-bottom">{{ .Date.Format "02 Jan 2006" }} &middot; Read more &rarr;</div>
         </div>
       </a>
+      {{ end }}
+
+      <!-- Panel 3: SPEECH BUBBLE style -->
+      {{ with index $latest3 2 }}
+      <a href="{{ .Permalink }}" class="comic-panel panel-bubble">
+        <div class="panel-inner">
+          <div class="thought-dots">
+            <span></span><span></span><span></span>
+          </div>
+          <h3 class="panel-title">{{ .Title }}</h3>
+          <div class="panel-tags">
+            {{ range .Params.tags }}<span class="tag-pill tag-sm">{{ . }}</span>{{ end }}
+          </div>
+          <p class="panel-text">{{ .Summary | truncate 130 }}</p>
+          <div class="panel-caption caption-bottom">{{ .Date.Format "02 Jan 2006" }} &middot; Read more &rarr;</div>
+        </div>
+      </a>
+      {{ end }}
     </div>
-    {{ end }}
+
   </div>
 </section>
 

@@ -324,110 +324,276 @@ img { max-width: 100%; height: auto; }
   box-shadow: 5px 5px 0px #222;
 }
 
-/* --- Latest 3 Articles Grid --- */
-.latest-articles {
+/* --- Comic Panels: Latest 3 Articles --- */
+.comic-panels-section {
   margin-bottom: 1rem;
 }
 
-.latest-grid {
+.comic-panels-strip {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: auto auto;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 1.25rem;
+  min-height: 480px;
+}
+
+.comic-panels-side {
+  display: flex;
+  flex-direction: column;
   gap: 1.25rem;
 }
 
-.latest-card {
-  background: var(--bg-surface);
+/* --- Shared Panel Styles --- */
+.comic-panel {
+  display: block;
+  border: 4px solid var(--border);
   border-radius: var(--radius);
-  border: var(--border-thick);
-  box-shadow: var(--shadow);
-  transition: transform 0.2s, box-shadow 0.2s;
   overflow: hidden;
+  position: relative;
+  transition: transform 0.2s, box-shadow 0.2s;
+  color: var(--text);
 }
 
-.latest-card a { display: block; }
-
-.latest-card:hover {
-  transform: translateY(-5px);
+.comic-panel:hover {
+  transform: translateY(-4px) rotate(-0.3deg);
   box-shadow: var(--shadow-lg);
+  color: var(--text);
 }
 
-.latest-featured {
-  grid-row: 1 / 3;
-  border-width: 4px;
+.panel-inner {
+  padding: 1.5rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
-.latest-featured .card-body {
-  padding: 2rem;
+.panel-title {
+  font-family: var(--font-heading);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.15;
+  margin-bottom: 0.5rem;
 }
 
-.latest-featured h3 {
-  font-size: 1.6rem;
-  line-height: 1.2;
+.panel-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.6rem;
 }
 
-.latest-featured .summary {
-  font-size: 1rem;
-  line-height: 1.6;
+.panel-text {
+  font-family: var(--font-comic);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: inherit;
+  opacity: 0.85;
+  flex: 1;
 }
 
-.latest-featured .card-accent-bar {
-  height: 8px;
-  background: linear-gradient(90deg, var(--comic-red), var(--comic-blue));
-}
-
-.latest-card:nth-child(2) .card-accent-bar {
-  background: var(--comic-blue);
-}
-
-.latest-card:nth-child(3) .card-accent-bar {
-  background: var(--comic-green);
-}
-
-.latest-card .card-body {
-  padding: 1.25rem 1.5rem 1.5rem;
-}
-
-.latest-card .meta {
+.panel-caption {
   font-family: var(--font-comic);
   font-size: 0.75rem;
-  color: var(--text-muted);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: 0.4rem;
 }
 
-.latest-card h3 {
+.caption-top { margin-bottom: 0.4rem; opacity: 0.6; }
+.caption-bottom { margin-top: 0.75rem; opacity: 0.6; }
+
+/* --- Panel 1: SPLASH (big dramatic) --- */
+.panel-splash {
+  background: linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  color: #fff;
+  box-shadow: var(--shadow-lg);
+}
+
+[data-theme="light"] .panel-splash {
+  background: linear-gradient(145deg, var(--comic-blue) 0%, #1a5276 50%, #154360 100%);
+}
+
+.panel-splash .panel-inner {
+  padding: 2rem 2.25rem;
+  position: relative;
+  z-index: 1;
+}
+
+.panel-splash::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 14px 14px;
+  z-index: 0;
+}
+
+.panel-splash .panel-title {
+  font-size: 2rem;
+  color: #fff;
+  text-shadow: 3px 3px 0px rgba(0,0,0,0.4);
+}
+
+.panel-splash .panel-text {
+  font-size: 1rem;
+  line-height: 1.6;
+  max-width: 550px;
+}
+
+.panel-splash .panel-tags .tag-pill-hero {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.3);
+  color: #fff;
+  font-size: 0.7rem;
+}
+
+/* Starburst "NEW!" badge */
+.starburst {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2;
+  width: 70px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-family: var(--font-heading);
-  font-size: 1.15rem;
-  line-height: 1.25;
-  margin-bottom: 0.5rem;
-  color: var(--text);
-  letter-spacing: 0.03em;
+  font-size: 1rem;
+  color: #222;
+  letter-spacing: 0.06em;
+  background: var(--comic-yellow);
+  clip-path: polygon(
+    50% 0%, 63% 18%, 82% 9%, 78% 30%,
+    98% 35%, 85% 50%, 98% 65%, 78% 70%,
+    82% 91%, 63% 82%, 50% 100%, 37% 82%,
+    18% 91%, 22% 70%, 2% 65%, 15% 50%,
+    2% 35%, 22% 30%, 18% 9%, 37% 18%
+  );
+  animation: starburst-spin 8s linear infinite;
 }
 
-.latest-card .summary {
-  font-family: var(--font-comic);
-  color: var(--text-dim);
-  font-size: 0.9rem;
-  line-height: 1.5;
+@keyframes starburst-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-.latest-card .read-more {
+.panel-action {
   display: inline-block;
-  margin-top: 0.75rem;
+  margin-top: 1rem;
+  background: var(--comic-yellow);
+  color: #222;
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+  padding: 0.4rem 1.2rem;
+  border: 3px solid #222;
+  border-radius: 4px;
+  box-shadow: 3px 3px 0px #222;
+  text-transform: uppercase;
+  transition: transform 0.15s, box-shadow 0.15s;
+  align-self: flex-start;
+}
+
+.panel-splash:hover .panel-action {
+  transform: rotate(-2deg) scale(1.05);
+  box-shadow: 4px 4px 0px #222;
+}
+
+/* --- Panel 2: NARRATION BOX style --- */
+.panel-narration {
+  background: var(--bg-surface);
+  box-shadow: var(--shadow);
+  flex: 1;
+}
+
+.narration-box {
+  background: var(--comic-yellow);
+  border: 2px solid #222;
+  padding: 0.25rem 0.75rem;
+  margin: -1.5rem -1.5rem 0.75rem -1.5rem;
+  position: relative;
+}
+
+.narration-label {
+  font-family: var(--font-comic);
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-style: italic;
+  color: #222;
+}
+
+.panel-narration .panel-title {
+  font-size: 1.2rem;
+  color: var(--text);
+}
+
+.panel-narration .panel-text {
+  color: var(--text-dim);
+}
+
+.panel-narration .caption-bottom {
+  color: var(--comic-blue);
   font-family: var(--font-heading);
   font-size: 0.8rem;
-  color: var(--comic-blue);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  transition: color 0.15s;
 }
 
-.latest-card .read-more::after { content: " \2192"; }
+.panel-narration:hover .caption-bottom {
+  color: var(--comic-red);
+}
 
-.latest-card:hover .read-more { color: var(--comic-red); }
+/* --- Panel 3: THOUGHT BUBBLE style --- */
+.panel-bubble {
+  background: var(--bg-surface);
+  box-shadow: var(--shadow);
+  border-radius: 24px;
+  flex: 1;
+}
+
+.panel-bubble .panel-inner {
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.thought-dots {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 0.6rem;
+}
+
+.thought-dots span {
+  display: block;
+  border-radius: 50%;
+  background: var(--comic-purple);
+  border: 2px solid var(--border);
+}
+
+.thought-dots span:nth-child(1) { width: 8px; height: 8px; }
+.thought-dots span:nth-child(2) { width: 12px; height: 12px; }
+.thought-dots span:nth-child(3) { width: 18px; height: 18px; }
+
+[data-theme="dark"] .thought-dots span {
+  background: var(--comic-purple);
+  border-color: var(--comic-purple);
+}
+
+.panel-bubble .panel-title {
+  font-size: 1.2rem;
+  color: var(--text);
+}
+
+.panel-bubble .panel-text {
+  color: var(--text-dim);
+}
+
+.panel-bubble .caption-bottom {
+  color: var(--comic-purple);
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+}
+
+.panel-bubble:hover .caption-bottom {
+  color: var(--comic-red);
+}
 
 /* --- YouTube Grid --- */
 .youtube-grid {
@@ -1388,11 +1554,12 @@ img { max-width: 100%; height: auto; }
   .article-card.card-featured {
     grid-column: span 1;
   }
-  .latest-grid {
+  .comic-panels-strip {
     grid-template-columns: 1fr;
+    min-height: auto;
   }
-  .latest-featured {
-    grid-row: auto;
+  .comic-panels-side {
+    flex-direction: column;
   }
   .youtube-grid {
     grid-template-columns: 1fr;
@@ -1416,12 +1583,77 @@ img { max-width: 100%; height: auto; }
   .search-results { width: 260px; right: -40px; }
 }
 
+/* --- Article Actions (listen + share) --- */
+.article-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+/* --- Share Buttons --- */
+.share-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.share-label {
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.7rem;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.share-x {
+  background: #000;
+  color: #fff;
+}
+
+[data-theme="dark"] .share-x {
+  background: #222;
+}
+
+.share-x:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+  color: #fff;
+}
+
+.share-linkedin {
+  background: #0A66C2;
+  color: #fff;
+}
+
+.share-linkedin:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+  color: #fff;
+}
+
 /* --- Listen Controls --- */
 .listen-controls {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  margin-top: 1rem;
   flex-wrap: wrap;
 }
 
@@ -1607,13 +1839,13 @@ img { max-width: 100%; height: auto; }
 .tag-pill {
   display: inline-block;
   font-family: var(--font-comic);
-  font-size: 0.8rem;
+  font-size: 0.65rem;
   font-weight: 700;
   color: var(--comic-blue);
   background: rgba(41, 128, 185, 0.1);
-  border: 2px solid var(--comic-blue);
+  border: 1.5px solid var(--comic-blue);
   border-radius: 20px;
-  padding: 0.2rem 0.7rem;
+  padding: 0.1rem 0.5rem;
   transition: all 0.15s;
   white-space: nowrap;
 }
@@ -1625,9 +1857,9 @@ img { max-width: 100%; height: auto; }
 }
 
 .tag-pill.tag-sm {
-  font-size: 0.7rem;
-  padding: 0.1rem 0.5rem;
-  border-width: 1.5px;
+  font-size: 0.6rem;
+  padding: 0.05rem 0.4rem;
+  border-width: 1px;
 }
 
 .tag-pill.tag-active {
@@ -1649,13 +1881,13 @@ img { max-width: 100%; height: auto; }
 .category-pill {
   display: inline-block;
   font-family: var(--font-heading);
-  font-size: 0.85rem;
+  font-size: 0.7rem;
   letter-spacing: 0.04em;
   color: var(--white);
   background: var(--comic-red);
-  border: 2px solid var(--border);
+  border: 1.5px solid var(--border);
   border-radius: 4px;
-  padding: 0.2rem 0.75rem;
+  padding: 0.1rem 0.5rem;
   text-transform: uppercase;
   box-shadow: var(--shadow-sm);
   transition: all 0.15s;
