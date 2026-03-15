@@ -324,6 +324,173 @@ img { max-width: 100%; height: auto; }
   box-shadow: 5px 5px 0px #222;
 }
 
+/* --- Latest 3 Articles Grid --- */
+.latest-articles {
+  margin-bottom: 1rem;
+}
+
+.latest-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 1.25rem;
+}
+
+.latest-card {
+  background: var(--bg-surface);
+  border-radius: var(--radius);
+  border: var(--border-thick);
+  box-shadow: var(--shadow);
+  transition: transform 0.2s, box-shadow 0.2s;
+  overflow: hidden;
+}
+
+.latest-card a { display: block; }
+
+.latest-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-lg);
+}
+
+.latest-featured {
+  grid-row: 1 / 3;
+  border-width: 4px;
+}
+
+.latest-featured .card-body {
+  padding: 2rem;
+}
+
+.latest-featured h3 {
+  font-size: 1.6rem;
+  line-height: 1.2;
+}
+
+.latest-featured .summary {
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.latest-featured .card-accent-bar {
+  height: 8px;
+  background: linear-gradient(90deg, var(--comic-red), var(--comic-blue));
+}
+
+.latest-card:nth-child(2) .card-accent-bar {
+  background: var(--comic-blue);
+}
+
+.latest-card:nth-child(3) .card-accent-bar {
+  background: var(--comic-green);
+}
+
+.latest-card .card-body {
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.latest-card .meta {
+  font-family: var(--font-comic);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.4rem;
+}
+
+.latest-card h3 {
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  line-height: 1.25;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+  letter-spacing: 0.03em;
+}
+
+.latest-card .summary {
+  font-family: var(--font-comic);
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.latest-card .read-more {
+  display: inline-block;
+  margin-top: 0.75rem;
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  color: var(--comic-blue);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: color 0.15s;
+}
+
+.latest-card .read-more::after { content: " \2192"; }
+
+.latest-card:hover .read-more { color: var(--comic-red); }
+
+/* --- YouTube Grid --- */
+.youtube-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+.youtube-card {
+  background: var(--bg-surface);
+  border: var(--border-thick);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.youtube-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.youtube-card .video-container {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  border-bottom: 2px solid var(--border);
+}
+
+.youtube-card-info {
+  padding: 0.75rem 1rem;
+}
+
+.youtube-card-info h4 {
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  letter-spacing: 0.03em;
+  color: var(--text);
+  line-height: 1.25;
+  margin-bottom: 0.25rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.youtube-card-info .meta {
+  font-family: var(--font-comic);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.youtube-loading {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 3rem;
+  font-family: var(--font-comic);
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
 /* --- Section Headers --- */
 .section-header {
   margin-bottom: 2rem;
@@ -1157,6 +1324,7 @@ img { max-width: 100%; height: auto; }
   }
   .article-card.card-wide { grid-column: span 1; }
   .youtube-panel { grid-template-columns: 1fr; }
+  .youtube-grid { grid-template-columns: repeat(2, 1fr); }
   .social-panels { grid-template-columns: 1fr; }
 }
 
@@ -1219,6 +1387,15 @@ img { max-width: 100%; height: auto; }
   .article-card.card-wide,
   .article-card.card-featured {
     grid-column: span 1;
+  }
+  .latest-grid {
+    grid-template-columns: 1fr;
+  }
+  .latest-featured {
+    grid-row: auto;
+  }
+  .youtube-grid {
+    grid-template-columns: 1fr;
   }
   .link-cards { grid-template-columns: 1fr; }
   .sidebar {

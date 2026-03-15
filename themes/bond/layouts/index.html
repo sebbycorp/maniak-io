@@ -1,36 +1,46 @@
 {{ define "main" }}
 {{ $articles := where .Site.RegularPages "Section" "articles" }}
+{{ $latest3 := first 3 $articles }}
+{{ $rest := after 3 $articles }}
 
-<!-- Hero: Latest Article as splash panel -->
-{{ with index $articles 0 }}
-<section class="hero-panel">
-  <a href="{{ .Permalink }}" class="hero-link">
-    <div class="hero-badge">Latest</div>
-    <div class="hero-content">
-      <div class="meta">{{ .Date.Format "02 Jan 2006" }}</div>
-      <h1>{{ .Title }}</h1>
-      <div class="hero-tags">
-        {{ range .Params.categories }}<span class="category-pill category-pill-hero">{{ . }}</span>{{ end }}
-        {{ range .Params.tags }}<span class="tag-pill tag-pill-hero">{{ . }}</span>{{ end }}
-      </div>
-      <p class="hero-summary">{{ .Summary | truncate 250 }}</p>
-      <span class="hero-cta">Read the full story</span>
+<!-- Latest 3 Articles: Top Feature -->
+<section class="latest-articles">
+  <div class="section-header">
+    <h2>Latest Articles</h2>
+  </div>
+  <div class="latest-grid">
+    {{ range $i, $p := $latest3 }}
+    <div class="latest-card{{ if eq $i 0 }} latest-featured{{ end }}">
+      <a href="{{ $p.Permalink }}">
+        <div class="card-accent-bar"></div>
+        <div class="card-body">
+          {{ if eq $i 0 }}<div class="hero-badge">New</div>{{ end }}
+          <div class="meta">{{ $p.Date.Format "02 Jan 2006" }}</div>
+          <h3>{{ $p.Title }}</h3>
+          <div class="card-tags">
+            {{ range $p.Params.categories }}<span class="category-pill" style="font-size:0.7rem;padding:0.1rem 0.5rem;">{{ . }}</span>{{ end }}
+            {{ range $p.Params.tags }}<span class="tag-pill tag-sm">{{ . }}</span>{{ end }}
+          </div>
+          <p class="summary">{{ if eq $i 0 }}{{ $p.Summary | truncate 250 }}{{ else }}{{ $p.Summary | truncate 120 }}{{ end }}</p>
+          <span class="read-more">Read more</span>
+        </div>
+      </a>
     </div>
-  </a>
+    {{ end }}
+  </div>
 </section>
-{{ end }}
 
-<!-- Articles + Sidebar layout -->
+<!-- All Articles + Sidebar -->
+{{ if $rest }}
 <section class="home-section">
   <div class="section-header">
-    <h2>Articles</h2>
+    <h2>More Articles</h2>
   </div>
   <div class="content-with-sidebar">
-    <!-- Main: Article Grid -->
     <div class="main-content">
       <div class="comic-grid">
-        {{ range $i, $p := (after 1 $articles) }}
-        <div class="article-card{{ if lt $i 2 }} card-wide{{ end }}">
+        {{ range $i, $p := $rest }}
+        <div class="article-card">
           <a href="{{ $p.Permalink }}">
             <div class="card-accent-bar"></div>
             <div class="card-body">
@@ -48,7 +58,6 @@
       </div>
     </div>
 
-    <!-- Sidebar: Categories + Tags -->
     <aside class="sidebar">
       {{ with .Site.Taxonomies.categories }}
       <div class="sidebar-section">
@@ -74,29 +83,18 @@
     </aside>
   </div>
 </section>
+{{ end }}
 
-<!-- YouTube: Featured Panel -->
+<!-- YouTube: Latest 3 Videos -->
 <section class="home-section">
   <div class="section-header">
     <h2>YouTube</h2>
-    <p>Latest videos and live streams</p>
+    <p>Latest videos</p>
   </div>
-  <div class="youtube-panel">
-    <div class="video-container">
-      <iframe
-        src="https://www.youtube.com/embed/videoseries?list=UUAP1CQwTOLlplBAODlmF2Vw"
-        title="Latest YouTube Video"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowfullscreen>
-      </iframe>
-    </div>
-    <div class="youtube-sidebar">
-      <div class="speech-bubble">
-        <p>Subscribe for tech deep-dives, live coding, and architecture breakdowns!</p>
-      </div>
-      <a href="{{ "youtube/" | relURL }}" class="section-link">View Channel</a>
-    </div>
+  <div id="youtube-grid" class="youtube-grid">
+    <div class="youtube-loading">Loading latest videos...</div>
   </div>
+  <a href="{{ .Site.Params.youtubeChannel }}" target="_blank" rel="noopener" class="section-link">View Channel</a>
 </section>
 
 <!-- Social: Comic Panels -->
@@ -141,5 +139,66 @@
     </div>
   </div>
 </section>
+
+<!-- YouTube: Fetch latest 3 videos via RSS -->
+<script>
+(function() {
+  var channelId = 'UCAP1CQwTOLlplBAODlmF2Vw';
+  var grid = document.getElementById('youtube-grid');
+  var rssUrl = 'https://www.youtube.com/feeds/videos.xml?channel_id=' + channelId;
+  // Use a CORS proxy to fetch the RSS feed
+  var proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(rssUrl);
+
+  fetch(proxyUrl)
+    .then(function(r) { return r.text(); })
+    .then(function(xml) {
+      var parser = new DOMParser();
+      var doc = parser.parseFromString(xml, 'text/xml');
+      var entries = doc.querySelectorAll('entry');
+      var videos = [];
+
+      for (var i = 0; i < Math.min(3, entries.length); i++) {
+        var entry = entries[i];
+        var videoId = entry.querySelector('videoId') ?
+          entry.querySelector('videoId').textContent :
+          entry.querySelector('id').textContent.split(':').pop();
+        var title = entry.querySelector('title').textContent;
+        var published = entry.querySelector('published').textContent;
+        var date = new Date(published);
+        var dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        videos.push({ id: videoId, title: title, date: dateStr });
+      }
+
+      if (!videos.length) {
+        grid.innerHTML = fallbackEmbed();
+        return;
+      }
+
+      grid.innerHTML = videos.map(function(v) {
+        return '<div class="youtube-card">' +
+          '<div class="video-container">' +
+            '<iframe src="https://www.youtube.com/embed/' + v.id + '" title="' + v.title.replace(/"/g, '&quot;') + '" ' +
+            'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>' +
+          '</div>' +
+          '<div class="youtube-card-info">' +
+            '<h4>' + v.title + '</h4>' +
+            '<span class="meta">' + v.date + '</span>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    })
+    .catch(function() {
+      grid.innerHTML = fallbackEmbed();
+    });
+
+  function fallbackEmbed() {
+    return '<div class="youtube-card" style="grid-column:1/-1">' +
+      '<div class="video-container">' +
+        '<iframe src="https://www.youtube.com/embed?listType=playlist&list=UUAP1CQwTOLlplBAODlmF2Vw" ' +
+        'title="Latest Videos" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>' +
+      '</div></div>';
+  }
+})();
+</script>
 
 {{ end }}
