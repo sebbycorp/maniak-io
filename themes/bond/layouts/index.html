@@ -3,6 +3,18 @@
 {{ $latest3 := first 3 $articles }}
 {{ $rest := after 3 $articles }}
 
+<!-- YouTube: Latest 3 Videos -->
+<section class="home-section">
+  <div class="section-header">
+    <h2>YouTube</h2>
+    <p>Latest videos</p>
+  </div>
+  <div id="youtube-grid" class="youtube-grid">
+    <div class="youtube-loading">Loading latest videos...</div>
+  </div>
+  <a href="{{ .Site.Params.youtubeChannel }}" target="_blank" rel="noopener" class="section-link">View Channel</a>
+</section>
+
 <!-- Latest 3 Articles: Comic Panels -->
 <section class="comic-panels-section">
   <div class="comic-panels-strip">
@@ -116,18 +128,6 @@
   </div>
 </section>
 {{ end }}
-
-<!-- YouTube: Latest 3 Videos -->
-<section class="home-section">
-  <div class="section-header">
-    <h2>YouTube</h2>
-    <p>Latest videos</p>
-  </div>
-  <div id="youtube-grid" class="youtube-grid">
-    <div class="youtube-loading">Loading latest videos...</div>
-  </div>
-  <a href="{{ .Site.Params.youtubeChannel }}" target="_blank" rel="noopener" class="section-link">View Channel</a>
-</section>
 
 <!-- Social: Comic Panels -->
 <section class="home-section social-feed">
