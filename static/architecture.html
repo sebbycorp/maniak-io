@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>agentgateway Architecture</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0d1117;
+    color: #c9d1d9;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 40px;
+  }
+  .container {
+    width: 1100px;
+    max-width: 100%;
+  }
+  .title {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 700;
+    color: #f0f6fc;
+    margin-bottom: 8px;
+  }
+  .subtitle {
+    text-align: center;
+    font-size: 14px;
+    color: #8b949e;
+    margin-bottom: 48px;
+  }
+  .layer {
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+    position: relative;
+  }
+  .layer-label {
+    position: absolute;
+    top: -10px;
+    left: 24px;
+    background: #0d1117;
+    padding: 0 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+  }
+  .layer-tools { background: #161b22; border: 1px solid #30363d; }
+  .layer-gateway { background: linear-gradient(135deg, #1a1e2e, #1e2438); border: 2px solid #58a6ff; }
+  .layer-providers { background: #161b22; border: 1px solid #30363d; }
+  .tools-row {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+  }
+  .tool-box {
+    background: #0d1117;
+    border: 1px solid #444c56;
+    border-radius: 8px;
+    padding: 16px 20px;
+    flex: 1;
+    max-width: 300px;
+    text-align: center;
+  }
+  .tool-box .icon { font-size: 28px; margin-bottom: 8px; }
+  .tool-box .name { font-size: 16px; font-weight: 600; color: #f0f6fc; margin-bottom: 8px; }
+  .tool-box .config {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 10px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    color: #79c0ff;
+    text-align: left;
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .gateway-body {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+  }
+  .gateway-routes { flex: 1; }
+  .route-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    margin-bottom: 8px;
+    background: rgba(88, 166, 255, 0.05);
+    border: 1px solid rgba(88, 166, 255, 0.2);
+    border-radius: 6px;
+  }
+  .route-path {
+    font-family: 'SF Mono', monospace;
+    font-size: 13px;
+    color: #58a6ff;
+    font-weight: 600;
+    min-width: 100px;
+  }
+  .route-arrow { color: #8b949e; }
+  .route-target {
+    font-size: 13px;
+    color: #c9d1d9;
+  }
+  .route-tag {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .tag-sub { background: #1a3a1a; color: #56d364; border: 1px solid #238636; }
+  .tag-key { background: #3d2a1a; color: #d29922; border: 1px solid #9e6a03; }
+  .gateway-info {
+    min-width: 180px;
+    text-align: center;
+    border-left: 1px solid #30363d;
+    padding-left: 24px;
+  }
+  .gateway-info .port {
+    font-size: 24px;
+    font-weight: 700;
+    color: #58a6ff;
+    font-family: 'SF Mono', monospace;
+  }
+  .gateway-info .label { font-size: 11px; color: #8b949e; margin-top: 4px; }
+  .providers-row {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+  }
+  .provider-box {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 16px 24px;
+    flex: 1;
+    max-width: 300px;
+    text-align: center;
+  }
+  .provider-box .icon { font-size: 28px; margin-bottom: 8px; }
+  .provider-box .name { font-size: 16px; font-weight: 600; color: #f0f6fc; }
+  .provider-box .endpoint { font-size: 11px; color: #8b949e; margin-top: 4px; font-family: monospace; }
+  .arrow {
+    text-align: center;
+    font-size: 24px;
+    color: #484f58;
+    margin: 4px 0;
+    line-height: 1;
+  }
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-top: 32px;
+    font-size: 12px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+  .dot-p1 { background: #56d364; }
+  .dot-p2 { background: #d29922; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="title">Connecting Claude Code & Codex Through agentgateway</div>
+  <div class="subtitle">Two patterns. One proxy. Centralized control.</div>
+
+  <!-- Tools Layer -->
+  <div class="layer layer-tools">
+    <span class="layer-label">Your AI Tools</span>
+    <div class="tools-row">
+      <div class="tool-box">
+        <div class="icon">🧑‍💻</div>
+        <div class="name">Claude Code</div>
+        <div class="config">ANTHROPIC_BASE_URL=\n  localhost:4001/claude</div>
+      </div>
+      <div class="tool-box">
+        <div class="icon">📝</div>
+        <div class="name">Codex</div>
+        <div class="config">base_url = localhost:\n  4001/codex/v1\nrequires_openai_auth = true</div>
+      </div>
+      <div class="tool-box">
+        <div class="icon">💻</div>
+        <div class="name">OpenCode</div>
+        <div class="config">base_url = localhost:\n  4001/opencode/v1</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">↓ HTTP requests ↓</div>
+
+  <!-- Gateway Layer -->
+  <div class="layer layer-gateway">
+    <span class="layer-label" style="color: #58a6ff;">agentgateway Proxy</span>
+    <div class="gateway-body">
+      <div class="gateway-routes">
+        <div class="route-item">
+          <span class="route-path">/claude</span>
+          <span class="route-arrow">→</span>
+          <span class="route-target">Anthropic API</span>
+          <span class="route-tag tag-sub">P1: Subscription</span>
+        </div>
+        <div class="route-item">
+          <span class="route-path">/codex</span>
+          <span class="route-arrow">→</span>
+          <span class="route-target">OpenAI (chatgpt.com)</span>
+          <span class="route-tag tag-sub">P1: Subscription</span>
+        </div>
+        <div class="route-item">
+          <span class="route-path">/claude</span>
+          <span class="route-arrow">→</span>
+          <span class="route-target">Anthropic API</span>
+          <span class="route-tag tag-key">P2: API Key</span>
+        </div>
+        <div class="route-item">
+          <span class="route-path">/codex</span>
+          <span class="route-arrow">→</span>
+          <span class="route-target">OpenAI (chatgpt.com)</span>
+          <span class="route-tag tag-key">P2: API Key</span>
+        </div>
+      </div>
+      <div class="gateway-info">
+        <div class="port">:4001</div>
+        <div class="label">default port</div>
+        <div style="margin-top: 16px; font-size: 11px; color: #8b949e;">
+          • Rate limiting<br>
+          • Auth injection<br>
+          • Path rewriting<br>
+          • Observability
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">↓ proxied + auth headers ↓</div>
+
+  <!-- Providers Layer -->
+  <div class="layer layer-providers">
+    <span class="layer-label">Upstream Providers</span>
+    <div class="providers-row">
+      <div class="provider-box">
+        <div class="icon">🟢</div>
+        <div class="name">Anthropic API</div>
+        <div class="endpoint">api.anthropic.com:443</div>
+      </div>
+      <div class="provider-box">
+        <div class="icon">🔵</div>
+        <div class="name">OpenAI</div>
+        <div class="endpoint">chatgpt.com:443</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><span class="legend-dot dot-p1"></span> P1: Subscription passthrough (no API key)</div>
+    <div class="legend-item"><span class="legend-dot dot-p2"></span> P2: API key via backendAuth</div>
+  </div>
+</div>
+</body>
+</html>

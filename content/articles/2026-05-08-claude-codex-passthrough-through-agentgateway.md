@@ -226,6 +226,157 @@ In this pattern, Codex uses `env_key` instead of `requires_openai_auth`. It'll p
 
 ---
 
+## Optional: Security Layers
+
+The patterns above cover the core routing and auth. But agentgateway also supports a full security posture — rate limiting, JWT auth, input/output validation, and more. Here's a practical guide to layering those on top.
+
+### Rate Limiting
+
+Stop a runaway agent from burning through tokens:
+
+```yaml
+# Rate limit Claude Code to 100 requests/hour
+- name: rate-limit-claude
+  matches:
+  - path:
+      pathPrefix: /claude
+  policies:
+    rateLimit:
+      requestsPerHour: 100
+      actions:
+      - reject: true
+        errorCode: 429
+```
+
+You can do token-based limits (e.g., max 1M tokens/day) or request-based limits. Both per-route and per-identifier (IP, user, org header).
+
+### JWT Authentication
+
+If you're exposing agentgateway externally (not just localhost), protect it with JWT:
+
+```yaml
+- name: secure-claude
+  matches:
+  - path:
+      pathPrefix: /claude
+  policies:
+    auth:
+      jwt:
+        issuer: https://auth.yourcompany.com
+        audiences:
+        - agentgateway
+      actions:
+        onSuccess:
+          requestHeaders:
+          - set:
+              X-Authenticated-User: \\$(request.auth.claims.email)
+```
+
+This validates the JWT, rejects unauthorized requests, and forwards the user's email as a header for audit logging.
+
+### Input Validation
+
+Guard against prompt injection and oversized payloads:
+
+```yaml
+- name: validate-input
+  matches:
+  - path:
+      pathPrefix: /claude
+  policies:
+    inputValidation:
+      maxRequestBodySize: 1MB
+      # Block requests with known injection patterns
+      blockPatterns:
+      - "ignore previous instructions"
+      - "bypass system prompt"
+```
+
+### Output Filtering
+
+Prevent sensitive data from leaking back:
+
+```yaml
+- name: filter-output
+  matches:
+  - path:
+      pathPrefix: /claude
+  policies:
+    outputFilter:
+      # Mask emails, phone numbers, SSNs in responses
+      maskPatterns:
+      - email
+      - phone
+      - ssn
+```
+
+### Request/Response Transformation
+
+Beyond what we showed in the config, you can strip headers, modify bodies, add middleware headers:
+
+```yaml
+policies:
+  urlRewrite:
+    path:
+      prefix: /
+  requestHeaderModifier:
+    set:
+      X-Gateway-Version: "1.2"
+      X-Request-ID: \\$(request.id)
+  responseHeaderModifier:
+    add:
+      X-Gateway-Processed: "true"
+```
+
+### Putting It All Together
+
+Here's what a production-ready route looks like when you layer it on:
+
+```yaml
+- name: claude-agent-secure
+  matches:
+  - path:
+      pathPrefix: /claude
+  policies:
+    urlRewrite:
+      path:
+        prefix: /
+    auth:
+      jwt:
+        issuer: https://auth.yourcompany.com
+        audiences:
+        - agentgateway
+    rateLimit:
+      requestsPerHour: 200
+      actions:
+      - reject: true
+        errorCode: 429
+    inputValidation:
+      maxRequestBodySize: 2MB
+    transformations:
+      request:
+        body: toJson(json(request.body).filterKeys(k, k != "context_management"))
+        headers:
+          set:
+            X-Authenticated-User: \\$(request.auth.claims.email)
+            X-Gateway-Source: claude-code
+  backends:
+  - ai:
+      name: claude-agent
+      provider:
+        anthropic: {}
+  policies:
+    ai:
+      routes:
+        /v1/messages: messages
+        /v1/messages/count_tokens: anthropicTokenCount
+        '*': passthrough
+```
+
+One route. JWT auth, rate limiting, body transformation, audit headers, and the Anthropic backend. That's the power of agentgateway — you configure it once and every tool that connects gets the full security treatment.
+
+---
+
 ## Why Bother?
 
 You could just point Claude Code and Codex at Anthropic and OpenAI directly. And you absolutely can. But here's what you get by routing through agentgateway:
