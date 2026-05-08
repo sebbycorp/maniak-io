@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 780" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
+  <defs>
+    <linearGradient id="gwGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a2240"/>
+      <stop offset="100%" stop-color="#1e2a4a"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto" fill="#484f58">
+      <polygon points="0 0, 10 3.5, 0 7"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="780" fill="#0d1117"/>
+
+  <!-- Title -->
+  <text x="600" y="42" text-anchor="middle" fill="#f0f6fc" font-size="24" font-weight="700">Connecting AI Tools Through agentgateway</text>
+  <text x="600" y="66" text-anchor="middle" fill="#8b949e" font-size="13">Two patterns. One proxy. Centralized control.</text>
+
+  <!-- ===== TOOLS LAYER ===== -->
+  <rect x="40" y="90" width="1120" height="140" rx="12" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <rect x="40" y="90" width="1120" height="28" rx="12" fill="#21262d"/>
+  <text x="60" y="109" fill="#8b949e" font-size="11" font-weight="600" letter-spacing="1.5" text-transform="uppercase">YOUR AI TOOLS</text>
+
+  <!-- Claude Code -->
+  <rect x="100" y="130" width="310" height="85" rx="8" fill="#0d1117" stroke="#30363d" stroke-width="1"/>
+  <text x="255" y="155" text-anchor="middle" fill="#f0f6fc" font-size="16" font-weight="600">Claude Code</text>
+  <text x="255" y="175" text-anchor="middle" fill="#79c0ff" font-size="10.5" font-family="monospace" opacity="0.9">ANTHROPIC_BASE_URL =</text>
+  <text x="255" y="190" text-anchor="middle" fill="#79c0ff" font-size="10.5" font-family="monospace" opacity="0.9">  localhost:4001/claude</text>
+
+  <!-- Codex -->
+  <rect x="445" y="130" width="310" height="85" rx="8" fill="#0d1117" stroke="#30363d" stroke-width="1"/>
+  <text x="600" y="155" text-anchor="middle" fill="#f0f6fc" font-size="16" font-weight="600">Codex</text>
+  <text x="600" y="175" text-anchor="middle" fill="#79c0ff" font-size="10.5" font-family="monospace" opacity="0.9">base_url = localhost:4001/codex/v1</text>
+  <text x="600" y="190" text-anchor="middle" fill="#79c0ff" font-size="10.5" font-family="monospace" opacity="0.9">requires_openai_auth = true</text>
+
+  <!-- OpenCode -->
+  <rect x="790" y="130" width="310" height="85" rx="8" fill="#0d1117" stroke="#30363d" stroke-width="1"/>
+  <text x="945" y="155" text-anchor="middle" fill="#f0f6fc" font-size="16" font-weight="600">OpenCode</text>
+  <text x="945" y="175" text-anchor="middle" fill="#79c0ff" font-size="10.5" font-family="monospace" opacity="0.9">base_url = localhost:4001/opencode/v1</text>
+
+  <!-- Arrow down -->
+  <text x="600" y="260" text-anchor="middle" fill="#484f58" font-size="20">↓ HTTP requests ↓</text>
+
+  <!-- ===== GATEWAY LAYER ===== -->
+  <rect x="40" y="280" width="1120" height="260" rx="12" fill="url(#gwGrad)" stroke="#58a6ff" stroke-width="2"/>
+  <rect x="40" y="280" width="1120" height="28" rx="12" fill="#21262d"/>
+  <text x="60" y="299" fill="#58a6ff" font-size="11" font-weight="600" letter-spacing="1.5" text-transform="uppercase">agentgateway PROXY</text>
+
+  <!-- Route 1: Claude → Anthropic -->
+  <rect x="70" y="320" width="530" height="44" rx="6" fill="rgba(88,166,255,0.08)" stroke="rgba(88,166,255,0.3)" stroke-width="1"/>
+  <text x="85" y="347" fill="#58a6ff" font-size="13" font-family="monospace" font-weight="600">/claude</text>
+  <text x="170" y="347" fill="#8b949e" font-size="13">→</text>
+  <text x="190" y="347" fill="#c9d1d9" font-size="13">Anthropic API</text>
+  <rect x="660" y="330" width="110" height="22" rx="11" fill="#1a3a1a" stroke="#238636" stroke-width="1"/>
+  <text x="715" y="345" text-anchor="middle" fill="#56d364" font-size="10" font-weight="600">P1: Subscription</text>
+
+  <!-- Route 2: Codex → OpenAI -->
+  <rect x="70" y="374" width="530" height="44" rx="6" fill="rgba(88,166,255,0.08)" stroke="rgba(88,166,255,0.3)" stroke-width="1"/>
+  <text x="85" y="401" fill="#58a6ff" font-size="13" font-family="monospace" font-weight="600">/codex</text>
+  <text x="170" y="401" fill="#8b949e" font-size="13">→</text>
+  <text x="190" y="401" fill="#c9d1d9" font-size="13">OpenAI (chatgpt.com)</text>
+  <rect x="660" y="384" width="110" height="22" rx="11" fill="#1a3a1a" stroke="#238636" stroke-width="1"/>
+  <text x="715" y="399" text-anchor="middle" fill="#56d364" font-size="10" font-weight="600">P1: Subscription</text>
+
+  <!-- Route 3: Claude → Anthropic (P2) -->
+  <rect x="70" y="428" width="530" height="44" rx="6" fill="rgba(210,153,34,0.08)" stroke="rgba(210,153,34,0.3)" stroke-width="1"/>
+  <text x="85" y="455" fill="#58a6ff" font-size="13" font-family="monospace" font-weight="600">/claude</text>
+  <text x="170" y="455" fill="#8b949e" font-size="13">→</text>
+  <text x="190" y="455" fill="#c9d1d9" font-size="13">Anthropic API</text>
+  <rect x="660" y="438" width="110" height="22" rx="11" fill="#3d2a1a" stroke="#9e6a03" stroke-width="1"/>
+  <text x="715" y="453" text-anchor="middle" fill="#d29922" font-size="10" font-weight="600">P2: API Key</text>
+
+  <!-- Route 4: Codex → OpenAI (P2) -->
+  <rect x="70" y="482" width="530" height="44" rx="6" fill="rgba(210,153,34,0.08)" stroke="rgba(210,153,34,0.3)" stroke-width="1"/>
+  <text x="85" y="509" fill="#58a6ff" font-size="13" font-family="monospace" font-weight="600">/codex</text>
+  <text x="170" y="509" fill="#8b949e" font-size="13">→</text>
+  <text x="190" y="509" fill="#c9d1d9" font-size="13">OpenAI (chatgpt.com)</text>
+  <rect x="660" y="492" width="110" height="22" rx="11" fill="#3d2a1a" stroke="#9e6a03" stroke-width="1"/>
+  <text x="715" y="507" text-anchor="middle" fill="#d29922" font-size="10" font-weight="600">P2: API Key</text>
+
+  <!-- Security badge -->
+  <rect x="620" y="306" width="230" height="218" rx="8" fill="#2e1a1a" stroke="#f0883e" stroke-width="1" opacity="0.85"/>
+  <text x="735" y="328" text-anchor="middle" fill="#f0883e" font-size="12" font-weight="600">SECURITY LAYERS</text>
+  <text x="635" y="350" fill="#c9d1d9" font-size="11">├─ Rate Limiting</text>
+  <text x="635" y="368" fill="#c9d1d9" font-size="11">├─ JWT Authentication</text>
+  <text x="635" y="386" fill="#c9d1d9" font-size="11">├─ Input Validation</text>
+  <text x="635" y="404" fill="#c9d1d9" font-size="11">├─ Output Filtering</text>
+  <text x="635" y="422" fill="#c9d1d9" font-size="11">├─ Request/Response Transforms</text>
+  <text x="635" y="440" fill="#c9d1d9" font-size="11">└─ Observability</text>
+
+  <!-- Port badge -->
+  <rect x="870" y="320" width="260" height="194" rx="8" fill="#1a2030" stroke="#58a6ff" stroke-width="1"/>
+  <text x="1000" y="352" text-anchor="middle" fill="#58a6ff" font-size="28" font-family="monospace" font-weight="700">:4001</text>
+  <text x="1000" y="372" text-anchor="middle" fill="#8b949e" font-size="11">default port</text>
+  <text x="1000" y="400" text-anchor="middle" fill="#8b949e" font-size="11" font-family="monospace">:4060</text>
+  <text x="1000" y="416" text-anchor="middle" fill="#8b949e" font-size="11">api key mode</text>
+  <line x1="900" y1="430" x2="1100" y2="430" stroke="#30363d" stroke-width="1"/>
+  <text x="900" y="452" fill="#8b949e" font-size="11">• Rate limiting</text>
+  <text x="900" y="470" fill="#8b949e" font-size="11">• Auth injection</text>
+  <text x="900" y="488" fill="#8b949e" font-size="11">• Path rewriting</text>
+  <text x="900" y="506" fill="#8b949e" font-size="11">• Observability</text>
+
+  <!-- Arrow down -->
+  <text x="600" y="570" text-anchor="middle" fill="#484f58" font-size="20">↓ proxied + auth headers ↓</text>
+
+  <!-- ===== PROVIDERS LAYER ===== -->
+  <rect x="40" y="590" width="1120" height="130" rx="12" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <rect x="40" y="590" width="1120" height="28" rx="12" fill="#21262d"/>
+  <text x="60" y="609" fill="#8b949e" font-size="11" font-weight="600" letter-spacing="1.5" text-transform="uppercase">UPSTREAM PROVIDERS</text>
+
+  <!-- Anthropic -->
+  <rect x="250" y="630" width="280" height="70" rx="8" fill="#0d1117" stroke="#30363d" stroke-width="1"/>
+  <text x="390" y="660" text-anchor="middle" fill="#f0f6fc" font-size="16" font-weight="600">Anthropic API</text>
+  <text x="390" y="682" text-anchor="middle" fill="#8b949e" font-size="11" font-family="monospace">api.anthropic.com:443</text>
+
+  <!-- OpenAI -->
+  <rect x="670" y="630" width="280" height="70" rx="8" fill="#0d1117" stroke="#30363d" stroke-width="1"/>
+  <text x="810" y="660" text-anchor="middle" fill="#f0f6fc" font-size="16" font-weight="600">OpenAI</text>
+  <text x="810" y="682" text-anchor="middle" fill="#8b949e" font-size="11" font-family="monospace">chatgpt.com:443</text>
+
+  <!-- Legend -->
+  <line x1="380" y1="740" x2="390" y2="740" stroke="#56d364" stroke-width="3"/>
+  <text x="400" y="744" fill="#c9d1d9" font-size="12">P1: Subscription passthrough (no API key)</text>
+  <line x1="720" y1="740" x2="730" y2="740" stroke="#d29922" stroke-width="3"/>
+  <text x="740" y="744" fill="#c9d1d9" font-size="12">P2: API key via backendAuth</text>
+
+</svg>
