@@ -1,7 +1,7 @@
 ---
-title: "How To: Connect Claude Code & Codex Through agentgateway (Subscription + API Key + Solo)"
+title: "How To: Connect Claude Code & Codex Through agentgateway (Subscription + API Key)"
 date: 2026-05-08
-description: "Connect Claude Code, Codex, and OpenCode to Anthropic and OpenAI through agentgateway — three patterns: subscription passthrough, API key routing, and Solo with gcloud identity."
+description: "Connect Claude Code, Codex, and OpenCode to Anthropic and OpenAI through agentgateway — two patterns: subscription passthrough and API key routing."
 author: "Sebastian Maniak"
 ---
 
@@ -11,15 +11,14 @@ You've got Claude Code running on your laptop. You've got Codex open in a tab. B
 
 Enter **[agentgateway](https://agentgateway.dev)**.
 
-agentgateway lets you run a local or cluster proxy that sits between your AI tools and the upstream providers. Every request goes through your gateway first, giving you a single point of control.
+agentgateway lets you run a local or cluster proxy that sits between your AI tools and the upstream providers. Every request goes through the gateway first, giving you a single point of control.
 
-In this guide, I'll walk you through **three patterns** for connecting Claude Code, Codex, and OpenCode to agentgateway:
+In this guide, I'll walk you through **two patterns** for connecting Claude Code, Codex, and OpenCode to agentgateway:
 
 1. **Subscription passthrough** — your tool uses an Anthropic/OpenAI org subscription, no API key needed
 2. **API key routing** — you pass API keys through the gateway for auth
-3. **Solo agentgateway with gcloud identity** — authenticate via `gcloud` and route to Solo's managed LLM endpoints
 
-Both patterns are simple. The subscription approach is cleaner if your org already handles billing. The API key approach is more flexible for multi-account setups. And the Solo approach is the fastest path if you're already in the GCP ecosystem.
+Both patterns are simple. The subscription approach is cleaner if your org already handles billing. The API key approach is more flexible for multi-account setups.
 
 Let's go.
 
@@ -227,162 +226,6 @@ In this pattern, Codex uses `env_key` instead of `requires_openai_auth`. It'll p
 
 ---
 
-## Pattern 3: OpenCode and Claude Code with Solo agentgateway
-
-If you're running agentgateway in Solo mode (the non-Kubernetes, standalone deployment), the setup is even simpler — and you authenticate via `gcloud` instead of raw API keys. This is the path of least resistance if you already have a GCP project set up.
-
-This pattern uses **Google Cloud Identity Tokens** — no Anthropic or OpenAI API keys on disk at all. agentgateway proxies your requests to Solo's managed LLM front-end (`agentgateway-llm-front.is.solo.io`) using a Bearer token minted by `gcloud`. Your tools talk to localhost, the gateway handles auth and routing.
-
-### Prerequisites
-
-- `gcloud` CLI installed and authenticated (`gcloud auth login`)
-- `gcloud` authenticated as a user in a GCP project (not a service account for user identity)
-- agentgateway binary running locally
-
-### Step 1: Generate the gcloud identity token
-
-```bash
-gcloud auth print-identity-token
-```
-
-Save the output — you'll reference it as `$GCLOUD_IDENTITY_TOKEN` in the config.
-
-### Step 2: agentgateway Config
-
-This config runs on port `4060` (separate from the other patterns so they don't collide). It has two routes: **OpenCode** and **Claude Code**, both pointing to Solo's LLM front-end.
-
-```yaml
-binds:
-- port: 4060
-
-listeners:
-- name: default
-  protocol: HTTP
-
-routes:
-- name: opencode-agent
-  matches:
-  - path:
-      pathPrefix: /opencode
-  policies:
-    urlRewrite:
-      path:
-        prefix: /
-    requestHeaderModifier:
-      set:
-        X-Solo-Org: engineering
-        Authorization: Bearer $GCLOUD_IDENTITY_TOKEN
-  backends:
-  - ai:
-      name: opencode-agent
-      hostOverride: agentgateway-llm-front.is.solo.io:443
-      pathPrefix: /inference/v1
-      policies:
-        backendTLS: {}
-      ai:
-        routes:
-          /v1/chat/completions: completions
-          /v1/responses: responses
-          /v1/embeddings: embeddings
-          '*': passthrough
-      provider:
-        openAI: {}
-
-- name: claude-agent
-  matches:
-  - path:
-      pathPrefix: /claude
-  policies:
-    urlRewrite:
-      path:
-        prefix: /
-    requestHeaderModifier:
-      set:
-        X-Solo-Org: engineering
-        Authorization: Bearer $GCLOUD_IDENTITY_TOKEN
-    transformations:
-      request:
-        body: toJson(json(request.body).filterKeys(k, k != "context_management"))
-    backends:
-    - ai:
-        name: claude-agent
-        hostOverride: agentgateway-llm-front.is.solo.io:443
-        policies:
-          backendTLS: {}
-        ai:
-          routes:
-            /v1/messages: messages
-            /v1/messages/count_tokens: anthropicTokenCount
-            '*': passthrough
-        provider:
-          anthropic: {}
-```
-
-Let me walk through the interesting bits:
-
-**OpenCode route** (`/opencode`):
-- Routes to `agentgateway-llm-front.is.solo.io:443` under `/inference/v1`
-- Sets `X-Solo-Org: engineering` — Solo uses this header to route to the right org/tenant
-- Injects the gcloud identity token as a Bearer auth header
-- Maps OpenAI-compatible paths (`/v1/chat/completions`, `/v1/responses`, `/v1/embeddings`)
-
-**Claude Code route** (`/claude`):
-- Routes to the same Solo front-end
-- Sets the same org and auth headers
-- Has a **body transformation** — strips `context_management` from the request body before forwarding. This is a Solo-specific quirk; Anthropic clients send that field and Solo's backend doesn't understand it, so we filter it out.
-- Maps standard Anthropic API paths (`/v1/messages`, `/v1/messages/count_tokens`)
-
-**`backendTLS: {}`** — enables TLS to the upstream. Since we're hitting `:443` on Solo's front-end, this is required.
-
-### Step 3: Configure Your Tools
-
-**OpenCode** — point it at the gateway:
-
-```toml
-# .codex/config.toml
-model_provider = "agentgateway"
-
-[model_providers]
-
-[model_providers.agentgateway]
-name = "agentgateway"
-base_url = "http://localhost:4060/opencode/v1"
-```
-
-**Claude Code** — point it at the gateway:
-
-```json
-// .claude/settings.local.json
-{
-  "env": {
-    "ANTHROPIC_BASE_URL": "http://localhost:4060/claude"
-  }
-}
-```
-
-That's it. No API keys on disk. No credentials in your tools. Everything authenticates through `gcloud`.
-
-### How the Auth Flow Works
-
-```
-┌──────────────┐                          ┌──────────────────────┐        ┌──────────────────────────────┐
-│   Claude     │── HTTP ─────────────────▶│  agentgateway        │── TLS ─▶│  agentgateway-llm-front    │
-│   Code       │  localhost:4060/claude   │  (localhost:4060)    │        │  .is.solo.io:443           │
-└──────────────┘                          │                      │        └──────────────────────────────┘
-                                          │ X-Solo-Org: engineering│
-                                          │ Bearer gcloud token     │
-                                          │ body transformation     │
-                                          ▼
-                                  ┌──────────────────────┐
-                                  │  gcloud auth         │
-                                  │  print-identity-token  │
-                                  └──────────────────────┘
-```
-
-Your tools talk to localhost → the gateway adds auth headers and strips the body → Solo's front-end accepts the gcloud token and serves the model. Zero API keys on your machine.
-
----
-
 ## Why Bother?
 
 You could just point Claude Code and Codex at Anthropic and OpenAI directly. And you absolutely can. But here's what you get by routing through agentgateway:
@@ -401,9 +244,8 @@ You could just point Claude Code and Codex at Anthropic and OpenAI directly. And
 |---------|------|-------------|
 | Subscription passthrough | Org subscription | Your org handles billing, no API key management needed |
 | API key routing | `backendAuth` with env vars | Multi-account setup, or you want keys managed at the gateway |
-| Solo agentgateway | `gcloud` identity token | Personal or small-team setup, no K8s needed, already in GCP ecosystem |
 
-Pick the pattern that fits your setup. All three work — the gateway handles the heavy lifting either way.
+Pick the pattern that fits your setup. Both work — the gateway handles the heavy lifting either way.
 
 ---
 
