@@ -24,6 +24,16 @@ Let's go.
 
 ---
 
+## Architecture
+
+Here's the full flow — your AI tools talk to localhost, the gateway routes and authenticates, upstream providers never see your machine directly.
+
+![agentgateway flow diagram showing Claude Code, Codex, and OpenCode routing through agentgateway to Anthropic and OpenAI](/images/articles/2026-05-08-claude-codex/agentgateway-flow-diagram.svg)
+
+Your tools → gateway (auth + routing + security layers) → providers. One proxy, full visibility.
+
+---
+
 ## Pattern 1: Subscription Passthrough (No API Key)
 
 This is the simplest setup. Your AI tools connect to agentgateway, which routes them to Anthropic or OpenAI using the organization's subscription or embedded credentials. No API keys on your machine.
