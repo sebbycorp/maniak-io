@@ -1,12 +1,12 @@
 ---
-title: "Open Source LLM Observability: Tracing AI Calls with AgentGateway and Langfuse"
+title: "Open Source LLM Observability: Tracing AI Calls with agentgateway and Langfuse"
 date: 2026-02-14
-description: "How to get full visibility into every LLM call your AI agents make — prompts, completions, token usage, costs — without changing a line of application code. Using AgentGateway's native OpenTelemetry tracing with Langfuse."
+description: "How to get full visibility into every LLM call your AI agents make — prompts, completions, token usage, costs — without changing a line of application code. Using agentgateway's native OpenTelemetry tracing with Langfuse."
 ---
 
 Your AI agents are calling LLMs hundreds of times a day. Do you know what they're sending? What they're spending? Whether that prompt injection guard actually fired?
 
-This guide shows how to wire [Langfuse](https://langfuse.com) into [AgentGateway](https://agentgateway.dev) to get **full observability over every LLM and MCP tool call** — zero application code changes required.
+This guide shows how to wire [Langfuse](https://langfuse.com) into [agentgateway](https://agentgateway.dev) to get **full observability over every LLM and MCP tool call** — zero application code changes required.
 
 ---
 
@@ -26,7 +26,7 @@ When tracing happens at the **gateway layer**, every request is captured automat
 
 ```
 ┌──────────────┐     ┌────────────────────────┐     ┌─────────────────┐
-│ Your App /   │     │   Solo AgentGateway     │     │   LLM Provider  │
+│ Your App /   │     │   Solo agentgateway     │     │   LLM Provider  │
 │ AI Agent     │────▶│   (Gateway API)         │────▶│   (OpenAI, etc) │
 │              │     │                         │     │                 │
 └──────────────┘     └───────────┬────────────┘     └─────────────────┘
@@ -48,11 +48,11 @@ When tracing happens at the **gateway layer**, every request is captured automat
                      └────────┘  └─────────────────┘
 ```
 
-AgentGateway natively emits OpenTelemetry traces for every LLM request. A lightweight OTel Collector receives these traces and forwards them to Langfuse via OTLP HTTP. The same collector can fan-out traces to additional backends (ClickHouse, Jaeger, Datadog) simultaneously.
+agentgateway natively emits OpenTelemetry traces for every LLM request. A lightweight OTel Collector receives these traces and forwards them to Langfuse via OTLP HTTP. The same collector can fan-out traces to additional backends (ClickHouse, Jaeger, Datadog) simultaneously.
 
 ---
 
-## Quick Start: Kind Cluster + AgentGateway 2.1 OSS
+## Quick Start: Kind Cluster + agentgateway 2.1 OSS
 
 Don't have a cluster? Here's the fastest path from zero to traced LLM calls.
 
@@ -68,7 +68,7 @@ kind create cluster --name agentgateway
 kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.0/standard-install.yaml
 ```
 
-### Install AgentGateway 2.1 OSS
+### Install agentgateway 2.1 OSS
 
 ```bash
 helm upgrade -i agentgateway-crds oci://cr.agentgateway.dev/helm/agentgateway-crds \
@@ -105,7 +105,7 @@ echo -n "pk-lf-YOUR_PUBLIC_KEY:sk-lf-YOUR_SECRET_KEY" | base64
 
 ### Step 2: Deploy the OTel Collector
 
-The collector bridges AgentGateway's OTLP gRPC output to Langfuse's OTLP HTTP input:
+The collector bridges agentgateway's OTLP gRPC output to Langfuse's OTLP HTTP input:
 
 ```yaml
 apiVersion: v1
@@ -205,9 +205,9 @@ spec:
 kubectl apply -f langfuse-collector.yaml
 ```
 
-### Step 3: Configure AgentGateway Tracing
+### Step 3: Configure agentgateway Tracing
 
-For AgentGateway OSS, enable tracing via Helm values:
+For agentgateway OSS, enable tracing via Helm values:
 
 ```yaml
 # values-tracing.yaml
@@ -224,7 +224,7 @@ helm upgrade agentgateway oci://cr.agentgateway.dev/helm/agentgateway \
   -f values-tracing.yaml
 ```
 
-For **AgentGateway Enterprise**, use the `EnterpriseAgentgatewayParameters` resource instead:
+For **agentgateway Enterprise**, use the `EnterpriseAgentgatewayParameters` resource instead:
 
 ```yaml
 apiVersion: enterpriseagentgateway.solo.io/v1alpha1
@@ -326,7 +326,7 @@ curl -X POST http://localhost:8080/openai/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "gpt-4.1-mini",
-    "messages": [{"role": "user", "content": "Hello from AgentGateway!"}]
+    "messages": [{"role": "user", "content": "Hello from agentgateway!"}]
   }'
 ```
 
@@ -363,7 +363,7 @@ Open Langfuse → **Traces**. You should see a trace with model, tokens, prompt,
 
 ## Multi-Provider Support
 
-AgentGateway traces all providers through the same pipeline — OpenAI, Anthropic, xAI/Grok, Azure OpenAI, Google Gemini, Ollama, and any OpenAI-compatible API. Add more routes, same observability:
+agentgateway traces all providers through the same pipeline — OpenAI, Anthropic, xAI/Grok, Azure OpenAI, Google Gemini, Ollama, and any OpenAI-compatible API. Add more routes, same observability:
 
 ```
 /openai/*    → OpenAI GPT    → traced to Langfuse
@@ -404,19 +404,19 @@ Common fan-out targets: Langfuse (LLM analytics) + ClickHouse (gateway metrics) 
 
 ## MCP Tool Tracing
 
-AgentGateway doesn't just trace LLM calls — it also traces MCP (Model Context Protocol) tool interactions:
+agentgateway doesn't just trace LLM calls — it also traces MCP (Model Context Protocol) tool interactions:
 
 - **Tool discovery** (`tools/list`) — which tools are available, how long discovery takes
 - **Tool execution** (`tools/call`) — parameters, results, latency
 - **Backend MCP server performance** — per-server latency and error rates
 
-When an agent calls Slack, GitHub, or any MCP tool server through AgentGateway, the full tool call chain appears in Langfuse alongside the LLM calls that triggered it.
+When an agent calls Slack, GitHub, or any MCP tool server through agentgateway, the full tool call chain appears in Langfuse alongside the LLM calls that triggered it.
 
 ---
 
 ## Security Policy Visibility
 
-When AgentGateway's security policies fire, the trace metadata includes what happened:
+When agentgateway's security policies fire, the trace metadata includes what happened:
 
 - **PII Protection** — how many entities were redacted, what types (email, SSN, phone)
 - **Prompt Injection** — whether an injection was detected and blocked
@@ -454,8 +454,8 @@ All manifests, configs, and examples are in the [agentgateway-langfuse](https://
 
 ## Resources
 
-- [AgentGateway OSS](https://agentgateway.dev) — CNCF open-source AI gateway
-- [AgentGateway Helm Install](https://agentgateway.dev/docs/kubernetes/latest/install/helm/)
+- [agentgateway OSS](https://agentgateway.dev) — CNCF open-source AI gateway
+- [agentgateway Helm Install](https://agentgateway.dev/docs/kubernetes/latest/install/helm/)
 - [Langfuse](https://langfuse.com) — Open-source LLM observability
 - [Langfuse OpenTelemetry Docs](https://langfuse.com/docs/integrations/opentelemetry)
 - [OpenTelemetry GenAI Conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/)

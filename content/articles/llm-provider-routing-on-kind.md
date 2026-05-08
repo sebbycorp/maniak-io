@@ -19,7 +19,7 @@ By the end of this guide you'll have:
 * Three `AgentgatewayBackend` resources for xAI, Anthropic, and OpenAI
 * Three `HTTPRoute` resources that route `/xai`, `/anthropic`, and `/openai` to their respective backends
 
-![AgentGateway LLM Provider Routing Architecture](/img/blog/llm-provider-routing/architecture-diagram.png)
+![agentgateway LLM Provider Routing Architecture](/img/blog/llm-provider-routing/architecture-diagram.png)
 
 ## Prerequisites
 

@@ -1,15 +1,15 @@
 ---
-title: "Your First AI Route: Connecting to OpenAI with AgentGateway"
+title: "Your First AI Route: Connecting to OpenAI with agentgateway"
 date: 2026-02-09
-description: "Learn how to create production-ready routes to OpenAI through AgentGateway. Configure secure API key storage, implement proper backends and HTTPRoutes, monitor real AI requests, and track costs with comprehensive observability."
+description: "Learn how to create production-ready routes to OpenAI through agentgateway. Configure secure API key storage, implement proper backends and HTTPRoutes, monitor real AI requests, and track costs with comprehensive observability."
 ---
 
 
 ## Introduction
 
-Now that you have AgentGateway running with observability and have tested with a mock environment, it's time to connect to a real AI provider. OpenAI is the perfect starting point due to its widespread adoption, comprehensive API, and excellent documentation.
+Now that you have agentgateway running with observability and have tested with a mock environment, it's time to connect to a real AI provider. OpenAI is the perfect starting point due to its widespread adoption, comprehensive API, and excellent documentation.
 
-In this guide, we'll create your first production-ready route to OpenAI, implement proper security practices, and demonstrate the observability benefits of routing AI traffic through AgentGateway.
+In this guide, we'll create your first production-ready route to OpenAI, implement proper security practices, and demonstrate the observability benefits of routing AI traffic through agentgateway.
 
 ## What You'll Learn
 
@@ -23,9 +23,9 @@ In this guide, we'll create your first production-ready route to OpenAI, impleme
 
 ## Prerequisites
 
-- Completed previous blog posts (AgentGateway setup, observability, mock environment)
+- Completed previous blog posts (agentgateway setup, observability, mock environment)
 - **Valid OpenAI API Key** with credits (get from [OpenAI Platform](https://platform.openai.com))
-- Kind cluster with AgentGateway and monitoring running
+- Kind cluster with agentgateway and monitoring running
 - Basic understanding of OpenAI API structure
 
 ## Environment Setup
@@ -290,7 +290,7 @@ kubectl get svc -n enterprise-agentgateway --selector=gateway.networking.k8s.io/
 export GATEWAY_IP="localhost"
 export GATEWAY_PORT="8080"
 
-echo "AgentGateway available at: $GATEWAY_IP:$GATEWAY_PORT"
+echo "agentgateway available at: $GATEWAY_IP:$GATEWAY_PORT"
 ```
 
 ### Test Chat Completions
@@ -309,7 +309,7 @@ curl -i "$GATEWAY_IP:$GATEWAY_PORT/openai/chat/completions" \
       },
       {
         "role": "user",
-        "content": "What are the key benefits of using an AI Gateway like AgentGateway for managing LLM requests?"
+        "content": "What are the key benefits of using an AI Gateway like agentgateway for managing LLM requests?"
       }
     ],
     "max_tokens": 200,
@@ -329,7 +329,7 @@ Expected response:
       "index": 0,
       "message": {
         "role": "assistant",
-        "content": "An AI Gateway like AgentGateway provides several key benefits for managing LLM requests:\n\n1. **Unified Access**: Single endpoint for multiple AI providers (OpenAI, Anthropic, AWS Bedrock)\n2. **Observability**: Comprehensive metrics, logging, and tracing of AI requests\n3. **Cost Management**: Token usage tracking and cost attribution across teams\n4. **Security**: Centralized authentication, API key management, and access control\n5. **Rate Limiting**: Protect against excessive usage and manage quotas\n6. **Reliability**: Failover between providers, retry policies, and circuit breakers\n\nThis centralized approach simplifies AI operations while providing enterprise-grade governance."
+        "content": "An AI Gateway like agentgateway provides several key benefits for managing LLM requests:\n\n1. **Unified Access**: Single endpoint for multiple AI providers (OpenAI, Anthropic, AWS Bedrock)\n2. **Observability**: Comprehensive metrics, logging, and tracing of AI requests\n3. **Cost Management**: Token usage tracking and cost attribution across teams\n4. **Security**: Centralized authentication, API key management, and access control\n5. **Rate Limiting**: Protect against excessive usage and manage quotas\n6. **Reliability**: Failover between providers, retry policies, and circuit breakers\n\nThis centralized approach simplifies AI operations while providing enterprise-grade governance."
       },
       "finish_reason": "stop"
     }
@@ -383,7 +383,7 @@ curl -s "$GATEWAY_IP:$GATEWAY_PORT/openai/chat/completions" \
 curl -s "$GATEWAY_IP:$GATEWAY_PORT/openai/embeddings" \
   -H "content-type: application/json" \
   -d '{
-    "input": "AgentGateway provides unified access to multiple AI providers with enterprise-grade security and observability.",
+    "input": "agentgateway provides unified access to multiple AI providers with enterprise-grade security and observability.",
     "model": "text-embedding-3-small"
   }' | jq '{
     model: .model,
@@ -410,8 +410,8 @@ curl -s "$GATEWAY_IP:$GATEWAY_PORT/openai/models" | jq '.data[] | select(.id | c
    echo "Grafana: http://localhost:3000 (admin / $GRAFANA_ADMIN_PASSWORD)"
    ```
 
-2. **Navigate to AgentGateway Dashboard**:
-   - Go to Dashboards > AgentGateway Overview
+2. **Navigate to agentgateway Dashboard**:
+   - Go to Dashboards > agentgateway Overview
    - Send several test requests
    - Observe real-time metrics:
      - Request rates by model
@@ -436,7 +436,7 @@ curl -s "$GATEWAY_IP:$GATEWAY_PORT/openai/models" | jq '.data[] | select(.id | c
    ```
 4. **Examine trace details**:
    - Total request duration
-   - Time spent in AgentGateway vs OpenAI
+   - Time spent in agentgateway vs OpenAI
    - Token usage attributes
    - Error information (if any)
 
@@ -472,7 +472,7 @@ CONCURRENT_REQUESTS=${1:-5}
 TOTAL_REQUESTS=${2:-25}
 MODEL=${3:-"gpt-4o-mini"}
 
-echo "Load testing OpenAI through AgentGateway..."
+echo "Load testing OpenAI through agentgateway..."
 echo "Target: $GATEWAY_IP:$GATEWAY_PORT"
 echo "Model: $MODEL"
 echo "Concurrent: $CONCURRENT_REQUESTS"
@@ -627,7 +627,7 @@ cat <<'EOF' > cost-monitor.sh
 COST_THRESHOLD=${1:-1.00}  # Alert if costs exceed $1.00
 CHECK_INTERVAL=${2:-300}   # Check every 5 minutes
 
-echo "Monitoring OpenAI costs through AgentGateway..."
+echo "Monitoring OpenAI costs through agentgateway..."
 echo "Threshold: \$$COST_THRESHOLD"
 echo "Check interval: ${CHECK_INTERVAL}s"
 
@@ -728,7 +728,7 @@ curl -s "https://api.openai.com/v1/models" \
   -H "Authorization: Bearer $OPENAI_API_KEY" \
   | jq '.data[0].id'
 
-# Check AgentGateway logs for auth errors
+# Check agentgateway logs for auth errors
 kubectl logs deploy/agentgateway -n enterprise-agentgateway | grep -i auth
 ```
 
@@ -777,7 +777,7 @@ kubectl patch agentgatewaybackend openai-all-models -n enterprise-agentgateway -
 ### Debug Connection Issues
 
 ```bash
-# Test connectivity from AgentGateway pod
+# Test connectivity from agentgateway pod
 kubectl exec -n enterprise-agentgateway deploy/agentgateway -- \
   curl -v https://api.openai.com/v1/models \
   -H "Authorization: Bearer $OPENAI_API_KEY"
@@ -862,8 +862,8 @@ In our next blog post, we'll explore advanced routing patterns that allow you to
 
 - **Real AI integration** requires proper API key management and security
 - **Observability** provides immediate insights into costs, performance, and usage
-- **AgentGateway** adds minimal latency while providing significant value
+- **agentgateway** adds minimal latency while providing significant value
 - **Production considerations** include timeouts, retries, and cost monitoring
 - **Structured logging** and metrics enable comprehensive AI operations visibility
 
-Your AgentGateway now connects to production AI services while maintaining enterprise-grade security, observability, and cost control!
+Your agentgateway now connects to production AI services while maintaining enterprise-grade security, observability, and cost control!

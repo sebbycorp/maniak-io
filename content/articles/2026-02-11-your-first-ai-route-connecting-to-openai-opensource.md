@@ -1,16 +1,16 @@
 ---
-title: "Your First AI Route: Connecting to OpenAI with AgentGateway"
+title: "Your First AI Route: Connecting to OpenAI with agentgateway"
 publishDate: 2026-02-11
 author: "Sebastian Maniak"
-description: "Step-by-step guide to connecting open source AgentGateway to OpenAI API with cost tracking, monitoring, security best practices, and production-ready configurations."
+description: "Step-by-step guide to connecting open source agentgateway to OpenAI API with cost tracking, monitoring, security best practices, and production-ready configurations."
 ---
 
 ## Introduction
-This is a how-to guide to setup AgentGateway and get your first AI route working with OpenAI. We'll walk through the complete setup from scratch - creating a Kubernetes cluster, installing AgentGateway, and connecting it to OpenAI's API.
+This is a how-to guide to setup agentgateway and get your first AI route working with OpenAI. We'll walk through the complete setup from scratch - creating a Kubernetes cluster, installing agentgateway, and connecting it to OpenAI's API.
 
-## What is AgentGateway?
+## What is agentgateway?
 
-AgentGateway is an open source, AI-native data plane built in Rust for connecting, securing, and observing AI traffic. Originally created by Solo.io and now a Linux Foundation project, it acts as a purpose-built proxy layer between your applications and AI services like LLMs, MCP tool servers, and other AI agents.
+agentgateway is an open source, AI-native data plane built in Rust for connecting, securing, and observing AI traffic. Originally created by Solo.io and now a Linux Foundation project, it acts as a purpose-built proxy layer between your applications and AI services like LLMs, MCP tool servers, and other AI agents.
 
 * Traditional API gateways don't fit AI workloads — AI inference requests are long-running (minutes vs milliseconds), have larger payloads, and can consume entire GPUs, unlike standard web traffic.
 * Connectivity — Unified interface to route requests to LLM providers (OpenAI, Anthropic, Bedrock, etc.), self-hosted models, and MCP tool servers.
@@ -19,13 +19,13 @@ AgentGateway is an open source, AI-native data plane built in Rust for connectin
 * MCP support — Can federate multiple MCP servers behind a single endpoint, and expose legacy REST APIs as MCP tools via OpenAPI integration.
 * A2A support — Native Agent-to-Agent protocol for secure inter-agent communication..
 
-In this tutorial, we'll focus on one of AgentGateway's most common use cases: routing requests to an LLM provider (OpenAI) with secure credential management and built-in cost observability.
+In this tutorial, we'll focus on one of agentgateway's most common use cases: routing requests to an LLM provider (OpenAI) with secure credential management and built-in cost observability.
 
 ## What You'll Learn
 
-- Create a Kubernetes cluster and install AgentGateway
+- Create a Kubernetes cluster and install agentgateway
 - Set up secure OpenAI API key storage
-- Configure AgentGateway to route to OpenAI
+- Configure agentgateway to route to OpenAI
 - Test chat completions, embeddings, and model listings
 - Monitor real AI requests and track costs
 - Troubleshoot common issues
@@ -42,7 +42,7 @@ In this tutorial, we'll focus on one of AgentGateway's most common use cases: ro
 
 ## Step 1: Environment Setup
 
-In this step, we'll create a local Kubernetes cluster using kind (Kubernetes in Docker) and install AgentGateway. This gives us a complete testing environment that mirrors production setups but runs entirely on your local machine.
+In this step, we'll create a local Kubernetes cluster using kind (Kubernetes in Docker) and install agentgateway. This gives us a complete testing environment that mirrors production setups but runs entirely on your local machine.
 
 ### Install Kind
 
@@ -57,7 +57,7 @@ chmod +x ./kind && sudo mv ./kind /usr/local/bin/kind
 
 ### Create Kind Cluster
 
-This creates a single-node Kubernetes cluster that will host our AgentGateway installation. The cluster provides the foundation for all the networking, security, and routing capabilities we'll configure.
+This creates a single-node Kubernetes cluster that will host our agentgateway installation. The cluster provides the foundation for all the networking, security, and routing capabilities we'll configure.
 
 ```bash
 # Create the cluster
@@ -67,20 +67,20 @@ kind create cluster --name agentgateway
 kubectl get nodes
 ```
 
-### Install AgentGateway
+### Install agentgateway
 
-AgentGateway installation happens in three phases: First we install the Kubernetes Gateway API (the standard for ingress traffic), then AgentGateway's custom resources, and finally the control plane that manages everything. This separation allows for better modularity and easier upgrades.
+agentgateway installation happens in three phases: First we install the Kubernetes Gateway API (the standard for ingress traffic), then agentgateway's custom resources, and finally the control plane that manages everything. This separation allows for better modularity and easier upgrades.
 ```bash
 # 1. Install Gateway API CRDs (version 1.4.0)
 kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.0/standard-install.yaml
 
-# 2. Install AgentGateway CRDs
+# 2. Install agentgateway CRDs
 helm upgrade -i --create-namespace \
   --namespace agentgateway-system \
   --version v2.2.0 agentgateway-crds \
   oci://ghcr.io/kgateway-dev/charts/agentgateway-crds
 
-# 3. Install AgentGateway control plane
+# 3. Install agentgateway control plane
 helm upgrade -i -n agentgateway-system agentgateway \
   oci://ghcr.io/kgateway-dev/charts/agentgateway \
   --version v2.2.0
@@ -105,7 +105,7 @@ OpenAI uses API keys for authentication and billing. Each key is tied to your ac
 
 ### Test Your API Key
 
-Before integrating with AgentGateway, we'll verify the API key works directly with OpenAI's API. This eliminates the key as a potential issue if something goes wrong later in the setup.
+Before integrating with agentgateway, we'll verify the API key works directly with OpenAI's API. This eliminates the key as a potential issue if something goes wrong later in the setup.
 ```bash
 # Set your OpenAI API key (replace with your actual key)
 export OPENAI_API_KEY="sk-your-openai-api-key-here"
@@ -118,7 +118,7 @@ curl -s "https://api.openai.com/v1/models" \
 
 ### Create Kubernetes Secret
 
-Kubernetes secrets provide a secure way to store sensitive data like API keys. We format the key as a complete Authorization header (`Bearer sk-...`) so AgentGateway can use it directly without modification. The `--dry-run=client -o yaml | kubectl apply -f -` pattern ensures the secret is created safely even if it already exists.
+Kubernetes secrets provide a secure way to store sensitive data like API keys. We format the key as a complete Authorization header (`Bearer sk-...`) so agentgateway can use it directly without modification. The `--dry-run=client -o yaml | kubectl apply -f -` pattern ensures the secret is created safely even if it already exists.
 ```bash
 # Create secret with proper authorization header format
 kubectl create secret generic openai-secret \
@@ -132,9 +132,9 @@ kubectl get secret openai-secret -n agentgateway-system
 
 ---
 
-## Step 3: Configure AgentGateway
+## Step 3: Configure agentgateway
 
-Now we'll configure the core components that make AI routing work. AgentGateway follows the Kubernetes Gateway API pattern with three main resources: Gateway (the entry point), Backends (destination services), and HTTPRoutes (traffic routing rules). This declarative approach makes configurations version-controllable and environment-portable.
+Now we'll configure the core components that make AI routing work. agentgateway follows the Kubernetes Gateway API pattern with three main resources: Gateway (the entry point), Backends (destination services), and HTTPRoutes (traffic routing rules). This declarative approach makes configurations version-controllable and environment-portable.
 
 ### Create Gateway Resource
 
@@ -160,7 +160,7 @@ EOF
 
 ### Create OpenAI Backend
 
-AgentgatewayBackend resources define how to connect to AI services. The `ai.provider.openai` section tells AgentGateway this is an AI service that expects OpenAI-compatible requests. The authentication policy references our secret, and the timeout ensures long-running AI requests don't hang indefinitely.
+AgentgatewayBackend resources define how to connect to AI services. The `ai.provider.openai` section tells agentgateway this is an AI service that expects OpenAI-compatible requests. The authentication policy references our secret, and the timeout ensures long-running AI requests don't hang indefinitely.
 ```bash
 kubectl apply -f- <<EOF
 apiVersion: agentgateway.dev/v1alpha1
@@ -211,7 +211,7 @@ EOF
 
 ### Verify Configuration
 
-Before testing, we'll check that all our resources are properly created and accepted by the AgentGateway controller. The `Accepted` status indicates that configurations are valid and the controller can proceed with implementation.
+Before testing, we'll check that all our resources are properly created and accepted by the agentgateway controller. The `Accepted` status indicates that configurations are valid and the controller can proceed with implementation.
 ```bash
 # Check both backends
 kubectl get agentgatewaybackend -n agentgateway-system
@@ -231,16 +231,16 @@ With our configuration complete, it's time to test the AI routing. Since we're u
 
 ### Setup Port-Forward
 
-Port-forwarding creates a tunnel from your local machine to the AgentGateway service inside the Kubernetes cluster. This lets us test the setup without exposing services publicly.
+Port-forwarding creates a tunnel from your local machine to the agentgateway service inside the Kubernetes cluster. This lets us test the setup without exposing services publicly.
 ```bash
-# Port-forward AgentGateway service in background
+# Port-forward agentgateway service in background
 kubectl port-forward -n agentgateway-system svc/agentgateway-proxy 8080:8080 &
 
 ```
 
 ### Test Chat Completions
 
-This is where the magic happens! Our request travels through AgentGateway, gets authenticated using our secret, routed to OpenAI's API, and returns with a complete AI response. Notice how the response includes token usage information that AgentGateway automatically captures for cost tracking and observability.
+This is where the magic happens! Our request travels through agentgateway, gets authenticated using our secret, routed to OpenAI's API, and returns with a complete AI response. Notice how the response includes token usage information that agentgateway automatically captures for cost tracking and observability.
 ```bash
 # Test basic chat completion
 curl -i "localhost:8080/openai/chat/completions" \
@@ -284,7 +284,7 @@ curl -i "localhost:8080/openai/chat/completions" \
 
 ### Test Different Models
 
-AgentGateway allows you to easily switch between different OpenAI models by simply changing the `model` parameter. The backend automatically routes to the appropriate model while maintaining consistent authentication and observability.
+agentgateway allows you to easily switch between different OpenAI models by simply changing the `model` parameter. The backend automatically routes to the appropriate model while maintaining consistent authentication and observability.
 ```bash
 # Test with GPT-4o
 curl -s "localhost:8080/openai/chat/completions" \
@@ -294,7 +294,7 @@ curl -s "localhost:8080/openai/chat/completions" \
     "messages": [
       {
         "role": "user",
-        "content": "Explain AgentGateway in one sentence."
+        "content": "Explain agentgateway in one sentence."
       }
     ],
     "max_tokens": 50
@@ -310,7 +310,7 @@ When working with distributed systems like Kubernetes and external APIs, issues 
 ### Common Issues
 
 **1. Service Not Found Error:**
-This usually means the service name doesn't match what was actually created during installation. Different AgentGateway versions or installation methods may create services with different names.
+This usually means the service name doesn't match what was actually created during installation. Different agentgateway versions or installation methods may create services with different names.
 ```bash
 # Check what services exist
 kubectl get svc -n agentgateway-system
@@ -320,7 +320,7 @@ kubectl get svc -n agentgateway-system | grep -i gateway
 ```
 
 **2. Authentication Errors (401):**
-Authentication failures typically indicate either an invalid API key or incorrect secret formatting. Always test the key directly with OpenAI before troubleshooting AgentGateway.
+Authentication failures typically indicate either an invalid API key or incorrect secret formatting. Always test the key directly with OpenAI before troubleshooting agentgateway.
 ```bash
 # Verify secret exists
 kubectl get secret openai-secret -n agentgateway-system -o yaml
@@ -356,7 +356,7 @@ export GATEWAY_PORT="8081"
 
 ### Debug Commands
 ```bash
-# View all AgentGateway resources
+# View all agentgateway resources
 kubectl get agentgatewaybackend,gateway,httproute -n agentgateway-system
 
 # Check pod logs for errors
@@ -382,7 +382,7 @@ kill $PORTFORWARD_PID
 
 ### Remove Resources (Optional)
 
-This removes all the AgentGateway configuration we created, but leaves the AgentGateway installation intact for future experiments. Remove resources in dependency order: routes first (they reference backends), then backends, then the Gateway.
+This removes all the agentgateway configuration we created, but leaves the agentgateway installation intact for future experiments. Remove resources in dependency order: routes first (they reference backends), then backends, then the Gateway.
 ```bash
 # Remove all OpenAI configuration
 kubectl delete httproute openai-chat openai-models -n agentgateway-system
@@ -414,11 +414,11 @@ Now that you have a working AI gateway, you can build on this foundation to crea
 
 This tutorial demonstrates several important concepts for production AI systems:
 
-- **AgentGateway provides a unified interface** to AI providers with minimal overhead, making it easy to switch providers or implement failover
+- **agentgateway provides a unified interface** to AI providers with minimal overhead, making it easy to switch providers or implement failover
 - **Proper secret management** is essential for production deployments - never embed API keys in code or configuration files
 - **Built-in observability** gives immediate insights into costs and performance without requiring additional tooling or instrumentation
 - **The Gateway API pattern** makes routing configuration declarative and portable across different Kubernetes environments
 - **Dual backend types** (AI-aware vs static HTTP) allow you to handle both complex AI workloads and simple metadata requests efficiently
 - **Kind clusters** are perfect for local development and testing, providing a production-like environment without cloud costs
 
-Your AgentGateway is now successfully routing requests to OpenAI with enterprise-grade security, observability, and cost control! You've built a foundation that can scale from development to production while maintaining visibility and control over your AI infrastructure. 🎯
+Your agentgateway is now successfully routing requests to OpenAI with enterprise-grade security, observability, and cost control! You've built a foundation that can scale from development to production while maintaining visibility and control over your AI infrastructure. 🎯

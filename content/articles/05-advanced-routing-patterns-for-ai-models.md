@@ -1,15 +1,15 @@
 ---
-title: "Advanced Routing Patterns for AI Models with AgentGateway"
+title: "Advanced Routing Patterns for AI Models with agentgateway"
 date: 2026-02-09
-description: "Master sophisticated AI traffic management with AgentGateway's advanced routing patterns. Learn path-based, header-based, weighted, and content-based routing for intelligent model selection, A/B testing, cost optimization, and failover strategies."
+description: "Master sophisticated AI traffic management with agentgateway's advanced routing patterns. Learn path-based, header-based, weighted, and content-based routing for intelligent model selection, A/B testing, cost optimization, and failover strategies."
 ---
 
 
 ## Introduction
 
-One of the most powerful features of AgentGateway is its ability to intelligently route requests to different AI models or providers based on various criteria. This enables sophisticated scenarios like model selection based on request characteristics, A/B testing different models, and cost optimization through intelligent routing.
+One of the most powerful features of agentgateway is its ability to intelligently route requests to different AI models or providers based on various criteria. This enables sophisticated scenarios like model selection based on request characteristics, A/B testing different models, and cost optimization through intelligent routing.
 
-In this guide, we'll explore multiple routing patterns that transform your AgentGateway from a simple proxy into an intelligent AI traffic management system.
+In this guide, we'll explore multiple routing patterns that transform your agentgateway from a simple proxy into an intelligent AI traffic management system.
 
 ## What You'll Learn
 
@@ -23,7 +23,7 @@ In this guide, we'll explore multiple routing patterns that transform your Agent
 
 ## Prerequisites
 
-- Completed previous blog posts (AgentGateway setup, observability, OpenAI integration)
+- Completed previous blog posts (agentgateway setup, observability, OpenAI integration)
 - Understanding of Kubernetes Gateway API concepts
 - Knowledge of HTTP routing principles
 - OpenAI API key for testing (we'll add Anthropic optionally)
@@ -37,7 +37,7 @@ Ensure your environment is ready:
 export OPENAI_API_KEY="sk-your-openai-api-key-here"
 export SOLO_TRIAL_LICENSE_KEY="your-license-key-here"
 
-# Verify AgentGateway is running
+# Verify agentgateway is running
 kubectl get pods -n enterprise-agentgateway
 
 # Verify existing OpenAI configuration
@@ -746,7 +746,7 @@ chmod +x test-weighted-routing.sh
 
 ### Route Based on Request Content
 
-Use AgentGateway's request analysis capabilities to route based on content characteristics:
+Use agentgateway's request analysis capabilities to route based on content characteristics:
 
 ```bash
 kubectl apply -f- <<'EOF'
@@ -891,7 +891,7 @@ curl -s "$GATEWAY_IP:$GATEWAY_PORT/ai/smart/completions" \
 cat <<'EOF' > routing-analysis.sh
 #!/bin/bash
 
-echo "Analyzing routing patterns from AgentGateway logs..."
+echo "Analyzing routing patterns from agentgateway logs..."
 echo ""
 
 # Extract routing information from recent logs
@@ -1249,11 +1249,11 @@ In our next blog post, we'll explore security features including JWT authenticat
 
 ## Key Takeaways
 
-- **Intelligent routing** transforms AgentGateway into a sophisticated AI traffic manager
+- **Intelligent routing** transforms agentgateway into a sophisticated AI traffic manager
 - **Multiple routing criteria** enable complex decision-making logic  
 - **A/B testing and gradual rollouts** provide safe model deployment strategies
 - **Content-based routing** optimizes cost and performance automatically
 - **Observability** provides insights into routing effectiveness and patterns
 - **Fallback strategies** ensure reliability even when primary models fail
 
-Your AgentGateway now has enterprise-grade routing capabilities that can handle complex production scenarios while optimizing for cost, performance, and reliability!
+Your agentgateway now has enterprise-grade routing capabilities that can handle complex production scenarios while optimizing for cost, performance, and reliability!

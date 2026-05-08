@@ -1,17 +1,17 @@
 ---
-title: "AWS AgentCore with AgentGateway and Okta OAuth"
+title: "AWS AgentCore with agentgateway and Okta OAuth"
 publishDate: 2026-02-19
 author: "Sebastian Maniak"
-description: "You wouldn't deploy microservices without an API gateway. So why are teams deploying AI agents with direct, ungoverned access to LLMs and external tools? AgentGateway fixes this."
+description: "You wouldn't deploy microservices without an API gateway. So why are teams deploying AI agents with direct, ungoverned access to LLMs and external tools? agentgateway fixes this."
 ---
 
 You wouldn't deploy microservices without an API gateway. So why are teams deploying AI agents with direct, ungoverned access to LLMs and external tools?
 
 If you're running agents on AWS Bedrock AgentCore — or anywhere else — and those agents are calling Claude, GPT-4, or hitting MCP tool servers directly, you have a governance gap. No rate limiting. No audit trail. No PII filtering. No failover. Every team wiring up their own retry logic, their own auth handling, their own cost tracking. It's 2016 microservices all over again, except the blast radius includes sending your customer database to a third-party LLM.
 
-[AgentGateway](https://github.com/agentgateway/agentgateway) fixes this. It's an open-source (CNCF) gateway purpose-built for AI agent traffic — both LLM calls and MCP tool calls — giving you a single control plane for everything your agents talk to.
+[agentgateway](https://github.com/agentgateway/agentgateway) fixes this. It's an open-source (CNCF) gateway purpose-built for AI agent traffic — both LLM calls and MCP tool calls — giving you a single control plane for everything your agents talk to.
 
-But here's the thing: you don't need *another* gateway from your cloud provider to do it. AgentGateway is your gateway — for auth, RBAC, observability, and security. Your cloud just provides compute.
+But here's the thing: you don't need *another* gateway from your cloud provider to do it. agentgateway is your gateway — for auth, RBAC, observability, and security. Your cloud just provides compute.
 
 This post walks through why, how the auth chain works end-to-end, and how the [aws-agentcore-demo](https://github.com/ProfessorSeb/aws-agentcore-demo) wires it all together.
 
@@ -50,11 +50,11 @@ The right answer: use your cloud provider for what it's good at — **compute** 
 
 ---
 
-## The Solution: AgentGateway
+## The Solution: agentgateway
 
-AgentGateway sits between your agents and everything they talk to. LLMs and MCP tool servers both route through it.
+agentgateway sits between your agents and everything they talk to. LLMs and MCP tool servers both route through it.
 
-This isn't Envoy with some AI plugins bolted on. AgentGateway is a purpose-built proxy with its own xDS-inspired control plane, designed from the ground up for agent traffic patterns. It understands:
+This isn't Envoy with some AI plugins bolted on. agentgateway is a purpose-built proxy with its own xDS-inspired control plane, designed from the ground up for agent traffic patterns. It understands:
 
 - **LLM protocols** — OpenAI-compatible chat completions, streaming, token counting
 - **MCP protocol** — tool discovery, tool invocation, server lifecycle
@@ -66,7 +66,7 @@ Two logical functions, one binary:
 1. **LLM Proxy** — OpenAI-compatible endpoint that routes to any provider (Anthropic, OpenAI, xAI, local models)
 2. **MCP Gateway** — aggregates multiple MCP servers, presents a unified tool catalog to agents, enforces auth + RBAC
 
-Your agent code barely changes. Point it at AgentGateway instead of the LLM provider directly. Add a Bearer token to MCP calls. That's it.
+Your agent code barely changes. Point it at agentgateway instead of the LLM provider directly. Add a Bearer token to MCP calls. That's it.
 
 ---
 
@@ -95,7 +95,7 @@ The [aws-agentcore-demo](https://github.com/ProfessorSeb/aws-agentcore-demo) is 
 ┌────────────────────────────────────┐
 │  k8s-rooster (on-prem k8s)         │
 │                                     │
-│  AgentGateway (Enterprise)          │
+│  agentgateway (Enterprise)          │
 │  ┌──────────┐ ┌──────────────────┐ │
 │  │  LLM     │ │  MCP             │ │
 │  │  Proxy   │ │  Gateway         │ │
@@ -112,15 +112,15 @@ The [aws-agentcore-demo](https://github.com/ProfessorSeb/aws-agentcore-demo) is 
                 └─────────────────┘
 ```
 
-**The agent container** runs on AgentCore as an arm64 Python/FastAPI application. It doesn't hold any LLM API keys. It knows two endpoints: AgentGateway's LLM proxy and MCP gateway.
+**The agent container** runs on AgentCore as an arm64 Python/FastAPI application. It doesn't hold any LLM API keys. It knows two endpoints: agentgateway's LLM proxy and MCP gateway.
 
-**LLM calls** go through AgentGateway's OpenAI-compatible proxy — no auth needed. AgentGateway holds the API keys (stored as Kubernetes Secrets, managed by ArgoCD), applies policies, logs the interaction, and returns the response.
+**LLM calls** go through agentgateway's OpenAI-compatible proxy — no auth needed. agentgateway holds the API keys (stored as Kubernetes Secrets, managed by ArgoCD), applies policies, logs the interaction, and returns the response.
 
-**MCP tool calls** go through AgentGateway's MCP gateway. The agent includes its Okta JWT (obtained via `client_credentials` grant) in every MCP request. AgentGateway validates the token, checks scopes, and enforces RBAC before the tool call reaches the upstream MCP server.
+**MCP tool calls** go through agentgateway's MCP gateway. The agent includes its Okta JWT (obtained via `client_credentials` grant) in every MCP request. agentgateway validates the token, checks scopes, and enforces RBAC before the tool call reaches the upstream MCP server.
 
 **Connectivity** between AWS and the on-prem k8s-rooster cluster uses ngrok tunnels — pragmatic for a demo. In production, you'd use VPC peering, PrivateLink, or similar.
 
-**No AgentCore Gateway.** The agent container is invoked directly through the AgentCore Runtime endpoint. AWS IAM controls who can invoke the agent. AgentGateway controls what the agent can do.
+**No AgentCore Gateway.** The agent container is invoked directly through the AgentCore Runtime endpoint. AWS IAM controls who can invoke the agent. agentgateway controls what the agent can do.
 
 ---
 
@@ -137,7 +137,7 @@ sequenceDiagram
     participant R as AgentCore Runtime
     participant A as Agent
     participant O as Okta
-    participant AG as AgentGateway
+    participant AG as agentgateway
     participant LLM as LLM Provider
     participant MCP as MCP Tools
 
@@ -171,7 +171,7 @@ sequenceDiagram
 
 **Layer 1: AWS IAM** — controls who can invoke the agent. Standard AWS access management. You already know this.
 
-**Layer 2: AgentGateway (Okta JWT + RBAC)** — controls what the agent can do with MCP tools. This is where it gets interesting.
+**Layer 2: agentgateway (Okta JWT + RBAC)** — controls what the agent can do with MCP tools. This is where it gets interesting.
 
 ### Okta Configuration
 
@@ -243,7 +243,7 @@ Every MCP call includes this token:
 headers["Authorization"] = f"Bearer {token}"
 ```
 
-### AgentGateway Enforces Three Layers of MCP Access Control
+### agentgateway Enforces Three Layers of MCP Access Control
 
 **Layer 1: JWT Authentication** — Enterprise policy validates Okta JWTs on every MCP request. No valid token = no tool access.
 
@@ -300,13 +300,13 @@ denyPolicy:
 
 ## Why Not Both Gateways?
 
-"Why not keep the AgentCore Gateway *and* use AgentGateway?"
+"Why not keep the AgentCore Gateway *and* use agentgateway?"
 
 You can. But you shouldn't. Here's why:
 
 1. **Redundant JWT validation.** Both validate the same Okta token. One is enough. Having two means debugging auth failures in two places.
 
-2. **AgentCore Gateway can't do what matters.** It validates JWTs. Great. But it doesn't do PII filtering, prompt injection detection, scope-based MCP RBAC, rate limiting per token budget, or LLM failover. You need AgentGateway for all of that anyway.
+2. **AgentCore Gateway can't do what matters.** It validates JWTs. Great. But it doesn't do PII filtering, prompt injection detection, scope-based MCP RBAC, rate limiting per token budget, or LLM failover. You need agentgateway for all of that anyway.
 
 3. **Portability.** The `EnterpriseAgentgatewayPolicy` you write for AWS works identically on GKE, AKS, bare metal, or your laptop. The AgentCore Gateway works on AWS only.
 
@@ -314,7 +314,7 @@ You can. But you shouldn't. Here's why:
 
 The demo architecture is intentionally minimal:
 - **AWS provides compute** (AgentCore Runtime)
-- **AgentGateway provides governance** (auth, RBAC, security, observability)
+- **agentgateway provides governance** (auth, RBAC, security, observability)
 - **Okta provides identity** (JWT tokens)
 
 Each component does one thing well.
@@ -325,11 +325,11 @@ Each component does one thing well.
 
 ### Security Policies
 
-**PII Protection.** Before a prompt reaches the LLM, AgentGateway scans for personally identifiable information and redacts it. Social security numbers, email addresses, phone numbers — stripped before they leave your network.
+**PII Protection.** Before a prompt reaches the LLM, agentgateway scans for personally identifiable information and redacts it. Social security numbers, email addresses, phone numbers — stripped before they leave your network.
 
-**Prompt Injection Detection.** Agents process user input. Users (or attackers) submit malicious prompts designed to hijack the agent's behavior. AgentGateway detects common jailbreak patterns and blocks them before the LLM ever sees them.
+**Prompt Injection Detection.** Agents process user input. Users (or attackers) submit malicious prompts designed to hijack the agent's behavior. agentgateway detects common jailbreak patterns and blocks them before the LLM ever sees them.
 
-**Credential Leak Prevention.** LLMs sometimes echo back credentials that appeared in training data or context. AgentGateway scans responses for patterns matching API keys, tokens, and passwords, blocking them before they reach users.
+**Credential Leak Prevention.** LLMs sometimes echo back credentials that appeared in training data or context. agentgateway scans responses for patterns matching API keys, tokens, and passwords, blocking them before they reach users.
 
 ### Traffic Management
 
@@ -346,7 +346,7 @@ rate_limiting:
 
 Per-identity limits (from JWT `sub` claim) prevent any single agent or user from monopolizing LLM capacity.
 
-**Multi-provider failover:** Configure primary and fallback providers. Anthropic down? AgentGateway routes to OpenAI automatically — your agent code doesn't change.
+**Multi-provider failover:** Configure primary and fallback providers. Anthropic down? agentgateway routes to OpenAI automatically — your agent code doesn't change.
 
 ### Observability
 
@@ -362,11 +362,11 @@ Every LLM call and MCP tool invocation is traced end-to-end:
 
 Your cloud provider should run your agents. It shouldn't govern them.
 
-AgentGateway gives you one place to enforce auth, RBAC, security policies, rate limits, and observability — regardless of where your agents run. Write the policy once, deploy it anywhere.
+agentgateway gives you one place to enforce auth, RBAC, security policies, rate limits, and observability — regardless of where your agents run. Write the policy once, deploy it anywhere.
 
-The [aws-agentcore-demo](https://github.com/ProfessorSeb/aws-agentcore-demo) proves it: a fully functional agent on AWS Bedrock AgentCore, with zero vendor-specific gateways, and complete governance through AgentGateway.
+The [aws-agentcore-demo](https://github.com/ProfessorSeb/aws-agentcore-demo) proves it: a fully functional agent on AWS Bedrock AgentCore, with zero vendor-specific gateways, and complete governance through agentgateway.
 
 **Resources:**
-- [AgentGateway GitHub](https://github.com/agentgateway/agentgateway)
-- [Enterprise AgentGateway](https://www.solo.io/products/agentgateway)
+- [agentgateway GitHub](https://github.com/agentgateway/agentgateway)
+- [Enterprise agentgateway](https://www.solo.io/products/agentgateway)
 - [Demo repo](https://github.com/ProfessorSeb/aws-agentcore-demo)

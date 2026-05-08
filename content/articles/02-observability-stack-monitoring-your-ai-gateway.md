@@ -1,13 +1,13 @@
 ---
 title: "Observability Stack: Monitoring Your AI Gateway"
 date: 2026-02-09
-description: "Deploy a complete observability stack for AgentGateway including distributed tracing with Tempo, metrics with Prometheus and Grafana, and AI-specific monitoring dashboards for comprehensive visibility into performance and costs."
+description: "Deploy a complete observability stack for agentgateway including distributed tracing with Tempo, metrics with Prometheus and Grafana, and AI-specific monitoring dashboards for comprehensive visibility into performance and costs."
 ---
 
 
 ## Introduction
 
-Observability is crucial for any production AI Gateway deployment. Enterprise AgentGateway emits comprehensive OpenTelemetry-compatible metrics, logs, and traces out of the box. In this guide, we'll deploy a complete observability stack including Grafana, Prometheus, Tempo, and Loki to collect, store, and visualize this rich telemetry data.
+Observability is crucial for any production AI Gateway deployment. Enterprise agentgateway emits comprehensive OpenTelemetry-compatible metrics, logs, and traces out of the box. In this guide, we'll deploy a complete observability stack including Grafana, Prometheus, Tempo, and Loki to collect, store, and visualize this rich telemetry data.
 
 This setup will give you real-time visibility into your AI Gateway's performance, cost metrics, token usage, streaming performance, and more.
 
@@ -15,13 +15,13 @@ This setup will give you real-time visibility into your AI Gateway's performance
 
 - Deploy Tempo for distributed tracing
 - Install Prometheus and Grafana for metrics and visualization
-- Configure AgentGateway-specific monitoring
-- Set up the official AgentGateway Grafana dashboard
+- Configure agentgateway-specific monitoring
+- Set up the official agentgateway Grafana dashboard
 - Access and interpret observability data
 
 ## Prerequisites
 
-- Kind cluster with Enterprise AgentGateway installed (from Part 1)
+- Kind cluster with Enterprise agentgateway installed (from Part 1)
 - kubectl configured to work with your cluster
 - Helm 3.x installed
 
@@ -33,7 +33,7 @@ Our observability stack will include:
 - **Prometheus**: Metrics collection and storage
 - **Tempo**: Distributed tracing backend
 - **Loki**: Log aggregation (optional)
-- **AgentGateway Datasources**: Pre-configured Grafana dashboards
+- **agentgateway Datasources**: Pre-configured Grafana dashboards
 
 ## Deploy Monitoring Stack
 
@@ -168,11 +168,11 @@ helm install grafana grafana/grafana \
     --values grafana-values.yaml
 ```
 
-## Configure AgentGateway for Observability
+## Configure agentgateway for Observability
 
-### Update AgentGateway Configuration
+### Update agentgateway Configuration
 
-We need to configure AgentGateway to send traces to our Tempo instance:
+We need to configure agentgateway to send traces to our Tempo instance:
 
 ```bash
 kubectl apply -f- <<'EOF'
@@ -302,7 +302,7 @@ prometheus-server-5f8b8b7d7d-abc34     1/1     Running   0          5m
 tempo-0                                1/1     Running   0          4m
 ```
 
-### Verify AgentGateway Configuration
+### Verify agentgateway Configuration
 
 ```bash
 kubectl get pods -n enterprise-agentgateway
@@ -323,13 +323,13 @@ Access Grafana at: `http://localhost:30080`
 
 Access Prometheus at: `http://localhost:30090`
 
-### AgentGateway Metrics
+### agentgateway Metrics
 
-Access AgentGateway metrics directly: `http://localhost:30091/metrics`
+Access agentgateway metrics directly: `http://localhost:30091/metrics`
 
-## AgentGateway GenAI Dashboard
+## agentgateway GenAI Dashboard
 
-The Grafana deployment automatically imports the official AgentGateway dashboard (ID: 21703). This dashboard provides:
+The Grafana deployment automatically imports the official agentgateway dashboard (ID: 21703). This dashboard provides:
 
 ### Key Metrics Panels
 
@@ -356,7 +356,7 @@ The Grafana deployment automatically imports the official AgentGateway dashboard
 ### Using the Dashboard
 
 1. Navigate to **Dashboards > Browse** in Grafana
-2. Open **AgentGateway GenAI Dashboard**
+2. Open **agentgateway GenAI Dashboard**
 3. Set time range (e.g., Last 1 hour)
 4. Select providers/models using dropdown filters
 
@@ -464,7 +464,7 @@ data:
 EOF
 ```
 
-### Configure AgentGateway Route
+### Configure agentgateway Route
 
 ```bash
 kubectl apply -f- <<'EOF'
@@ -549,7 +549,7 @@ done
 
 ### In Grafana
 
-1. **Dashboard Overview**: Navigate to the AgentGateway dashboard
+1. **Dashboard Overview**: Navigate to the agentgateway dashboard
 2. **Request Metrics**: See request rates, response times
 3. **Token Usage**: Monitor input/output tokens and costs
 4. **Error Analysis**: Check error rates and types
@@ -672,7 +672,7 @@ If traces aren't appearing in Tempo:
 # Check Tempo is receiving traces
 kubectl logs -l app.kubernetes.io/name=tempo -n monitoring
 
-# Verify AgentGateway trace configuration
+# Verify agentgateway trace configuration
 kubectl get enterpriseagentgatewayparameters agentgateway-params -n enterprise-agentgateway -o yaml
 
 # Check connectivity
@@ -687,7 +687,7 @@ If metrics aren't showing in Prometheus:
 # Check Prometheus targets
 curl http://localhost:30090/targets
 
-# Verify AgentGateway metrics endpoint
+# Verify agentgateway metrics endpoint
 curl http://localhost:30091/metrics
 
 # Check Prometheus configuration
@@ -737,4 +737,4 @@ In our next blog post, we'll create a mock OpenAI environment for cost-free deve
 - **Cost tracking** and optimization insights
 - **Production-ready** monitoring stack for kind clusters
 
-Your AgentGateway is now fully instrumented and ready for production workloads with comprehensive observability!
+Your agentgateway is now fully instrumented and ready for production workloads with comprehensive observability!

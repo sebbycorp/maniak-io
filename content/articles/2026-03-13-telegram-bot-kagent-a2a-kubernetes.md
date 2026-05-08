@@ -852,7 +852,7 @@ This is a foundation. From here you could:
 - **Add more agents**: Create a `telegram-security-agent` with Kubescape tools, or a `telegram-istio-agent` with mesh-specific tools
 - **Route by command**: Use different Telegram commands (`/k8s`, `/istio`, `/security`) to route to different kagent agents
 - **Add image support**: kagent supports multi-modal parts — you could send screenshots of dashboards and ask "what's wrong here?"
-- **Connect via AgentGateway**: Route the A2A traffic through [AgentGateway](https://agentgateway.dev) for rate limiting, authentication, and observability
+- **Connect via agentgateway**: Route the A2A traffic through [agentgateway](https://agentgateway.dev) for rate limiting, authentication, and observability
 - **Build other chat integrations**: The A2A protocol is platform-agnostic. Swap `python-telegram-bot` for `discord.py`, `slack-bolt`, or even a WhatsApp integration and the A2A layer stays exactly the same
 
 The pattern works for any chat platform. The A2A protocol is the universal adapter.

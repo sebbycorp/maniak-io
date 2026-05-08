@@ -1,8 +1,8 @@
 ---
-title: "Route MCP and LLM Traffic from Claude Desktop and Claude Code Through AgentGateway"
+title: "Route MCP and LLM Traffic from Claude Desktop and Claude Code Through agentgateway"
 publishDate: 2026-02-18
 author: "Sebastian Maniak"
-description: "How to proxy MCP server traffic from Claude Desktop and LLM API calls from Claude Code through Solo AgentGateway for security, observability, and rate limiting — using Anthropic as the backend provider."
+description: "How to proxy MCP server traffic from Claude Desktop and LLM API calls from Claude Code through Solo agentgateway for security, observability, and rate limiting — using Anthropic as the backend provider."
 ---
 
 ## Introduction
@@ -11,11 +11,11 @@ Claude Desktop and Claude Code are powerful AI tools, but out of the box they ta
 
 What if you could put a gateway in front of all that traffic?
 
-This guide shows you how to route both **MCP server traffic from Claude Desktop** and **LLM API calls from Claude Code** through [Solo AgentGateway](https://agentgateway.dev) — giving you JWT authentication, observability traces, rate limiting, and centralized API key management. We'll use **Anthropic** as the LLM provider.
+This guide shows you how to route both **MCP server traffic from Claude Desktop** and **LLM API calls from Claude Code** through [Solo agentgateway](https://agentgateway.dev) — giving you JWT authentication, observability traces, rate limiting, and centralized API key management. We'll use **Anthropic** as the LLM provider.
 
 ## What You Get
 
-By routing traffic through AgentGateway, you gain:
+By routing traffic through agentgateway, you gain:
 
 - **Security**: JWT authentication on MCP endpoints, RBAC for tool access, prompt injection guards
 - **Observability**: OpenTelemetry traces for every MCP tool call and LLM request
@@ -30,7 +30,7 @@ By routing traffic through AgentGateway, you gain:
 │  Claude Desktop  │          │                          │
 │  (MCP traffic)   │─────────▶│                          │──▶ MCP Servers
 │                  │          │                          │    (math, github, etc.)
-└──────────────────┘          │    Solo AgentGateway     │
+└──────────────────┘          │    Solo agentgateway     │
                               │    (Gateway API)         │
 ┌──────────────────┐          │                          │
 │  Claude Code     │          │  • JWT Auth              │
@@ -44,7 +44,7 @@ Claude Desktop connects to MCP servers *through* the gateway. Claude Code sends 
 
 ## Prerequisites
 
-- Kubernetes cluster with AgentGateway deployed ([quickstart](https://docs.solo.io/agentgateway/latest/quickstart/))
+- Kubernetes cluster with agentgateway deployed ([quickstart](https://docs.solo.io/agentgateway/latest/quickstart/))
 - `kubectl` and `helm` installed
 - Anthropic API key
 - Claude Desktop installed (for MCP routing)
@@ -200,7 +200,7 @@ kubectl wait --for=condition=ready pod -l app=mcp-math-server --timeout=120s
 
 ## Part 2: Create the Gateway and Routes
 
-We need two things routed through AgentGateway: MCP tool traffic and LLM API traffic to Anthropic.
+We need two things routed through agentgateway: MCP tool traffic and LLM API traffic to Anthropic.
 
 ### Create the Anthropic API Key Secret
 
@@ -335,7 +335,7 @@ export GATEWAY_IP=localhost
 
 ## Part 3: Configure Claude Desktop (MCP Traffic)
 
-Claude Desktop can route its MCP tool calls through AgentGateway using [supergateway](https://github.com/nichochar/supergateway) as a local bridge.
+Claude Desktop can route its MCP tool calls through agentgateway using [supergateway](https://github.com/nichochar/supergateway) as a local bridge.
 
 ### Config File Location
 
@@ -381,7 +381,7 @@ Restart Claude Desktop after saving the config. You should see the math tools av
 
 ## Part 4: Configure Claude Code (LLM Traffic via Anthropic)
 
-Claude Code can route its LLM API traffic through AgentGateway to Anthropic. This means your API keys stay in Kubernetes secrets — not on developer machines.
+Claude Code can route its LLM API traffic through agentgateway to Anthropic. This means your API keys stay in Kubernetes secrets — not on developer machines.
 
 ### Set the Base URL
 
@@ -403,7 +403,7 @@ echo "export ANTHROPIC_BASE_URL=http://$GATEWAY_IP:8080/anthropic" >> ~/.zshrc
 claude
 ```
 
-All LLM traffic now flows through AgentGateway to Anthropic. You can verify by checking the gateway logs:
+All LLM traffic now flows through agentgateway to Anthropic. You can verify by checking the gateway logs:
 
 ```bash
 kubectl logs -n agentgateway-system -l gateway.networking.k8s.io/gateway-name=ai-gateway -f
@@ -495,7 +495,7 @@ Open Claude Desktop and ask it to use the math tools:
 
 > "What's 42 multiplied by 17?"
 
-Claude should invoke the `multiply` tool through AgentGateway. Check the gateway logs to confirm the request was proxied.
+Claude should invoke the `multiply` tool through agentgateway. Check the gateway logs to confirm the request was proxied.
 
 ### Test LLM (Claude Code)
 
@@ -519,7 +519,7 @@ You should see the math tools listed and be able to invoke them.
 
 ## Important Limitations
 
-- **Claude Desktop's core LLM traffic** (conversations with Claude itself) cannot be routed through AgentGateway — only MCP server traffic is proxied
+- **Claude Desktop's core LLM traffic** (conversations with Claude itself) cannot be routed through agentgateway — only MCP server traffic is proxied
 - **Claude Code LLM traffic** *can* be fully routed through the gateway via the `ANTHROPIC_BASE_URL` environment variable
 - For local development (kind/minikube), you'll need port-forwarding since there's no external load balancer
 
@@ -555,8 +555,8 @@ kubectl delete secret anthropic-api-key -n agentgateway-system
 
 ## Resources
 
-- [Solo AgentGateway Docs](https://docs.solo.io/agentgateway/)
-- [AgentGateway OSS](https://agentgateway.dev)
+- [Solo agentgateway Docs](https://docs.solo.io/agentgateway/)
+- [agentgateway OSS](https://agentgateway.dev)
 - [Claude Desktop MCP Documentation](https://docs.anthropic.com/en/docs/claude-desktop/mcp)
 - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
 - [Original demo configs](https://github.com/AdminTurnedDevOps/agentic-demo-repo/tree/main/agent-desktop-configs)
