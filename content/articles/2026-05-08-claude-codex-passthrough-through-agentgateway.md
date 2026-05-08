@@ -1,7 +1,7 @@
 ---
-title: "How To: Connect Claude Code & Codex Through AgentGateway (Subscription + API Key + Solo)"
+title: "How To: Connect Claude Code & Codex Through agentgateway (Subscription + API Key + Solo)"
 date: 2026-05-08
-description: "Connect Claude Code, Codex, and OpenCode to Anthropic and OpenAI through AgentGateway — three patterns: subscription passthrough, API key routing, and Solo with gcloud identity."
+description: "Connect Claude Code, Codex, and OpenCode to Anthropic and OpenAI through agentgateway — three patterns: subscription passthrough, API key routing, and Solo with gcloud identity."
 author: "Sebastian Maniak"
 ---
 
@@ -9,15 +9,15 @@ author: "Sebastian Maniak"
 
 You've got Claude Code running on your laptop. You've got Codex open in a tab. Both are just AI coding tools, right? Wrong. Behind the scenes, they're making raw API calls — Claude Code directly to Anthropic, Codex directly to OpenAI. No central visibility. No rate limiting. No policy enforcement. And if you're running multiple agents, you're scattering API keys across every machine.
 
-Enter **[AgentGateway](https://agentgateway.dev)**.
+Enter **[agentgateway](https://agentgateway.dev)**.
 
-AgentGateway lets you run a local or cluster proxy that sits between your AI tools and the upstream providers. Every request goes through your gateway first, giving you a single point of control.
+agentgateway lets you run a local or cluster proxy that sits between your AI tools and the upstream providers. Every request goes through your gateway first, giving you a single point of control.
 
-In this guide, I'll walk you through **three patterns** for connecting Claude Code, Codex, and OpenCode to AgentGateway:
+In this guide, I'll walk you through **three patterns** for connecting Claude Code, Codex, and OpenCode to agentgateway:
 
 1. **Subscription passthrough** — your tool uses an Anthropic/OpenAI org subscription, no API key needed
 2. **API key routing** — you pass API keys through the gateway for auth
-3. **Solo AgentGateway with gcloud identity** — authenticate via `gcloud` and route to Solo's managed LLM endpoints
+3. **Solo agentgateway with gcloud identity** — authenticate via `gcloud` and route to Solo's managed LLM endpoints
 
 Both patterns are simple. The subscription approach is cleaner if your org already handles billing. The API key approach is more flexible for multi-account setups. And the Solo approach is the fastest path if you're already in the GCP ecosystem.
 
@@ -27,11 +27,11 @@ Let's go.
 
 ## Pattern 1: Subscription Passthrough (No API Key)
 
-This is the simplest setup. Your AI tools connect to AgentGateway, which routes them to Anthropic or OpenAI using the organization's subscription or embedded credentials. No API keys on your machine.
+This is the simplest setup. Your AI tools connect to agentgateway, which routes them to Anthropic or OpenAI using the organization's subscription or embedded credentials. No API keys on your machine.
 
 ### The Setup
 
-You're running AgentGateway locally on port `4001`. Claude Code and Codex both connect to it. Here's what the config looks like:
+You're running agentgateway locally on port `4001`. Claude Code and Codex both connect to it. Here's what the config looks like:
 
 ```yaml
 binds:
@@ -139,7 +139,7 @@ export ANTHROPIC_API_KEY=$(cat ~/.api-keys/anthropic.txt)
 export OPENAI_API_KEY=$(cat ~/.api-keys/openai.txt)
 ```
 
-Then run AgentGateway with those keys and bind on a different port (we use `4060` here so it doesn't collide with the first pattern):
+Then run agentgateway with those keys and bind on a different port (we use `4060` here so it doesn't collide with the first pattern):
 
 ```yaml
 binds:
@@ -227,17 +227,17 @@ In this pattern, Codex uses `env_key` instead of `requires_openai_auth`. It'll p
 
 ---
 
-## Pattern 3: OpenCode and Claude Code with Solo AgentGateway
+## Pattern 3: OpenCode and Claude Code with Solo agentgateway
 
-If you're running AgentGateway in Solo mode (the non-Kubernetes, standalone deployment), the setup is even simpler — and you authenticate via `gcloud` instead of raw API keys. This is the path of least resistance if you already have a GCP project set up.
+If you're running agentgateway in Solo mode (the non-Kubernetes, standalone deployment), the setup is even simpler — and you authenticate via `gcloud` instead of raw API keys. This is the path of least resistance if you already have a GCP project set up.
 
-This pattern uses **Google Cloud Identity Tokens** — no Anthropic or OpenAI API keys on disk at all. AgentGateway proxies your requests to Solo's managed LLM front-end (`agentgateway-llm-front.is.solo.io`) using a Bearer token minted by `gcloud`. Your tools talk to localhost, the gateway handles auth and routing.
+This pattern uses **Google Cloud Identity Tokens** — no Anthropic or OpenAI API keys on disk at all. agentgateway proxies your requests to Solo's managed LLM front-end (`agentgateway-llm-front.is.solo.io`) using a Bearer token minted by `gcloud`. Your tools talk to localhost, the gateway handles auth and routing.
 
 ### Prerequisites
 
 - `gcloud` CLI installed and authenticated (`gcloud auth login`)
 - `gcloud` authenticated as a user in a GCP project (not a service account for user identity)
-- AgentGateway binary running locally
+- agentgateway binary running locally
 
 ### Step 1: Generate the gcloud identity token
 
@@ -247,7 +247,7 @@ gcloud auth print-identity-token
 
 Save the output — you'll reference it as `$GCLOUD_IDENTITY_TOKEN` in the config.
 
-### Step 2: AgentGateway Config
+### Step 2: agentgateway Config
 
 This config runs on port `4060` (separate from the other patterns so they don't collide). It has two routes: **OpenCode** and **Claude Code**, both pointing to Solo's LLM front-end.
 
@@ -366,7 +366,7 @@ That's it. No API keys on disk. No credentials in your tools. Everything authent
 
 ```
 ┌──────────────┐                          ┌──────────────────────┐        ┌──────────────────────────────┐
-│   Claude     │── HTTP ─────────────────▶│  AgentGateway        │── TLS ─▶│  agentgateway-llm-front    │
+│   Claude     │── HTTP ─────────────────▶│  agentgateway        │── TLS ─▶│  agentgateway-llm-front    │
 │   Code       │  localhost:4060/claude   │  (localhost:4060)    │        │  .is.solo.io:443           │
 └──────────────┘                          │                      │        └──────────────────────────────┘
                                           │ X-Solo-Org: engineering│
@@ -385,7 +385,7 @@ Your tools talk to localhost → the gateway adds auth headers and strips the bo
 
 ## Why Bother?
 
-You could just point Claude Code and Codex at Anthropic and OpenAI directly. And you absolutely can. But here's what you get by routing through AgentGateway:
+You could just point Claude Code and Codex at Anthropic and OpenAI directly. And you absolutely can. But here's what you get by routing through agentgateway:
 
 - **Centralized auth** — your API keys live in one place, not scattered across dev machines
 - **Observability** — every request flows through the gateway, so you get traces, metrics, and logs for free
@@ -401,10 +401,10 @@ You could just point Claude Code and Codex at Anthropic and OpenAI directly. And
 |---------|------|-------------|
 | Subscription passthrough | Org subscription | Your org handles billing, no API key management needed |
 | API key routing | `backendAuth` with env vars | Multi-account setup, or you want keys managed at the gateway |
-| Solo AgentGateway | `gcloud` identity token | Personal or small-team setup, no K8s needed, already in GCP ecosystem |
+| Solo agentgateway | `gcloud` identity token | Personal or small-team setup, no K8s needed, already in GCP ecosystem |
 
 Pick the pattern that fits your setup. All three work — the gateway handles the heavy lifting either way.
 
 ---
 
-*This is a living guide. If you run into issues or have a setup that works differently, drop a comment on the [AgentGateway GitHub repo](https://github.com/agentgateway/agentgateway).*
+*This is a living guide. If you run into issues or have a setup that works differently, drop a comment on the [agentgateway GitHub repo](https://github.com/agentgateway/agentgateway).*
