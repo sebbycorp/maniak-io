@@ -1,7 +1,7 @@
 ---
-title: "Proxying All Your LLM Traffic Through AgentGateway with Grok Build"
+title: "Proxying All Your LLM Traffic Through agentgateway with Grok Build"
 date: 2026-05-20
-description: "Centralize all your LLM traffic — OpenAI, xAI Grok, and local Qwen models — through a single Enterprise AgentGateway instance, configured as the unified endpoint for Grok Build. One URL, full observability, secret management, and route-based access control."
+description: "Centralize all your LLM traffic — OpenAI, xAI Grok, and local Qwen models — through a single Enterprise agentgateway instance, configured as the unified endpoint for Grok Build. One URL, full observability, secret management, and route-based access control."
 ---
 
 ## Introduction
@@ -10,13 +10,13 @@ If you're like me, your AI tooling has probably grown into a sprawling mess of A
 
 The alternative is elegant: **route every single LLM request through a single gateway** that handles authentication, observability, rate limiting, and routing — then point all your tools at that one endpoint.
 
-In this guide, I'll walk you through exactly how I set up this architecture using **Solo.io Enterprise AgentGateway** as the LLM traffic proxy and **Grok Build** as one of the clients. My production cluster routes traffic to three backends:
+In this guide, I'll walk you through exactly how I set up this architecture using **Solo.io Enterprise agentgateway** as the LLM traffic proxy and **Grok Build** as one of the clients. My production cluster routes traffic to three backends:
 
 - **OpenAI** (`gpt-4o`) — cloud API via `api.openai.com`
 - **xAI Grok** (`grok-4.3`) — cloud API via `api.x.ai`
 - **DGX Spark** (`Qwen/Qwen3.6-35B-A3B-FP8`) — local on-prem inference server at `172.16.10.173:8000`
 
-The key insight is that AgentGateway speaks the OpenAI API contract. Every backend — regardless of whether it's OpenAI, xAI, Anthropic, or a local Qwen — is exposed as a standard `/v1/chat/completions` endpoint. Your tools don't need to know or care what's behind the proxy.
+The key insight is that agentgateway speaks the OpenAI API contract. Every backend — regardless of whether it's OpenAI, xAI, Anthropic, or a local Qwen — is exposed as a standard `/v1/chat/completions` endpoint. Your tools don't need to know or care what's behind the proxy.
 
 ## Architecture Overview
 
@@ -25,7 +25,7 @@ Here's the high-level picture:
 ```
 ┌─────────────┐    ┌─────────────────────────────────────────────┐
 │  Grok Build │    │                                             │
-│  Claude Code│───→│  AgentGateway Proxy (Kubernetes)            │
+│  Claude Code│───→│  agentgateway Proxy (Kubernetes)            │
 │  Cursor     │    │                                             │
 │  Langflow   │    │  Gateway → HTTPRoute → AgentgatewayBackend  │
 │  Your CLI   │    │                                             │
@@ -37,7 +37,7 @@ Here's the high-level picture:
                     └──────────┘ └──────────┘ └────────────┘
 ```
 
-All LLM requests flow through the same AgentGateway instance — the same IP, same port, same observability pipeline — but different HTTP path prefixes route to different backends:
+All LLM requests flow through the same agentgateway instance — the same IP, same port, same observability pipeline — but different HTTP path prefixes route to different backends:
 
 | Path Prefix | Backend | Model | Location |
 |-------------|---------|-------|----------|
@@ -47,7 +47,7 @@ All LLM requests flow through the same AgentGateway instance — the same IP, sa
 
 ## The Problem with Scattered LLM Configuration
 
-Before AgentGateway, my setup looked like this:
+Before agentgateway, my setup looked like this:
 
 - **Grok Build**: `base_url: http://172.16.10.173:8000/v1`, model `Qwen/Qwen3.6-35B-A3B-FP8`
 - **Claude Code**: `ANTHROPIC_API_KEY` in `.env`, points at `api.anthropic.com`
@@ -61,15 +61,15 @@ The pain points were obvious:
 3. **Local model isolation** — my on-prem Qwen model on DGX Spark was only accessible to tools that could reach `172.16.10.173`, with no unified routing
 4. **Secret management** — no centralized rotation, no audit trail
 
-After AgentGateway, it's all one URL with path-based routing. Every request goes through the same gateway that logs, traces, and authenticates — regardless of which LLM ultimately serves it.
+After agentgateway, it's all one URL with path-based routing. Every request goes through the same gateway that logs, traces, and authenticates — regardless of which LLM ultimately serves it.
 
 ## The Architecture: Three Layers
 
-AgentGateway uses three Kubernetes resource types to define each backend connection:
+agentgateway uses three Kubernetes resource types to define each backend connection:
 
 ### 1. AgentgatewayBackend — "Where is the LLM?"
 
-The backend resource tells AgentGateway about an LLM provider. Here are all three of mine:
+The backend resource tells agentgateway about an LLM provider. Here are all three of mine:
 
 **OpenAI backend** — Cloud API with API key auth:
 
@@ -134,7 +134,7 @@ spec:
 
 Key observations:
 
-- The **OpenAI provider** in AgentGateway isn't just for OpenAI — it implements the OpenAI-compatible API contract. That's why it works for xAI (which exposes an OpenAI-compatible endpoint) and for the DGX Spark's vLLM server.
+- The **OpenAI provider** in agentgateway isn't just for OpenAI — it implements the OpenAI-compatible API contract. That's why it works for xAI (which exposes an OpenAI-compatible endpoint) and for the DGX Spark's vLLM server.
 - The DGX Spark backend points directly at the on-prem inference server. No cloud egress, no internet required.
 - Cloud backends (OpenAI, xAI) use `secretRef` for API key auth. The local DGX Spark has no auth — it's on the internal network.
 
@@ -180,7 +180,7 @@ spec:
           from: All
 ```
 
-Both use the `enterprise-agentgateway` GatewayClass, which is created automatically by the Enterprise AgentGateway Helm chart. On my bare-metal Talos cluster, these are exposed via NodePort:
+Both use the `enterprise-agentgateway` GatewayClass, which is created automatically by the Enterprise agentgateway Helm chart. On my bare-metal Talos cluster, these are exposed via NodePort:
 
 | Gateway | NodePort |
 |---------|----------|
@@ -306,7 +306,7 @@ spec:
 
 ## Distributed Tracing
 
-Every request through AgentGateway emits OpenTelemetry traces to the Solo UI's telemetry collector. This gives you a unified view of all LLM traffic — OpenAI, xAI, local Qwen — in the same dashboard:
+Every request through agentgateway emits OpenTelemetry traces to the Solo UI's telemetry collector. This gives you a unified view of all LLM traffic — OpenAI, xAI, local Qwen — in the same dashboard:
 
 ```yaml
 apiVersion: enterpriseagentgateway.solo.io/v1alpha1
@@ -363,9 +363,9 @@ theme = "groknight"
 default = "agw"
 ```
 
-The `[model.agw]` section defines a model called `agw` that points at the DGX Spark gateway URL — `http://172.16.10.149:31944/spark`. This is the AgentGateway endpoint for my local Qwen model.
+The `[model.agw]` section defines a model called `agw` that points at the DGX Spark gateway URL — `http://172.16.10.149:31944/spark`. This is the agentgateway endpoint for my local Qwen model.
 
-The `[models]` section sets `agw` as the **default model**, so every Grok Build conversation goes through AgentGateway by default.
+The `[models]` section sets `agw` as the **default model**, so every Grok Build conversation goes through agentgateway by default.
 
 The `[model.qwen]` entry is a fallback direct-to-backend configuration. If I need to bypass the gateway for debugging, I can switch to the `qwen` model and it points directly at the vLLM server.
 
@@ -386,7 +386,7 @@ The request never leaves my network. The gateway still logs it, traces it, and e
 
 The same pattern works for any tool that supports custom API endpoints:
 
-**Claude Code** — set the API base to the AgentGateway URL for Anthropic:
+**Claude Code** — set the API base to the agentgateway URL for Anthropic:
 ```
 ANTHROPIC_BASE_URL=http://172.16.10.149:30160/anthropic
 ```
@@ -395,7 +395,7 @@ ANTHROPIC_BASE_URL=http://172.16.10.149:30160/anthropic
 ```
 http://172.16.10.149:30160/openai
 ```
-And set the model to `gpt-4o` — AgentGateway strips the path prefix and forwards to the OpenAI backend.
+And set the model to `gpt-4o` — agentgateway strips the path prefix and forwards to the OpenAI backend.
 
 **Langflow / LlamaIndex / custom scripts** — same thing:
 ```python
@@ -442,7 +442,7 @@ curl http://172.16.10.149:31944/spark/v1/chat/completions \
 All of these manifests live in a Git repository and are deployed via ArgoCD using sync waves:
 
 1. **Wave 1** — Gateway API CRDs
-2. **Wave 2** — AgentGateway CRDs (AgentgatewayBackend, EnterpriseAgentgatewayPolicy types)
+2. **Wave 2** — agentgateway CRDs (AgentgatewayBackend, EnterpriseAgentgatewayPolicy types)
 3. **Wave 3** — Control plane (controller + proxy)
 4. **Wave 4** — HashiCorp Vault (secrets store)
 5. **Wave 5** — External Secrets Operator (Vault → K8s Secret sync)
@@ -476,14 +476,14 @@ After months of running this setup, the benefits are clear:
 
 5. **Secrets never touch Git** — Vault + ESO keeps API keys out of the repository. Adding a new provider means storing a key in Vault and applying three YAML files.
 
-6. **Network isolation** — The on-prem DGX Spark is on an internal network (`172.16.10.173`). AgentGateway exposes it to the outside world through the Gateway API — no firewall rules needed on the DGX itself.
+6. **Network isolation** — The on-prem DGX Spark is on an internal network (`172.16.10.173`). agentgateway exposes it to the outside world through the Gateway API — no firewall rules needed on the DGX itself.
 
 ## Conclusion
 
-AgentGateway transforms the LLM landscape from a fragmented mess of per-tool configurations into a unified, observable, centrally-managed infrastructure. Grok Build is just one client — any tool that speaks the OpenAI API contract can connect to the gateway and get access to all your LLMs.
+agentgateway transforms the LLM landscape from a fragmented mess of per-tool configurations into a unified, observable, centrally-managed infrastructure. Grok Build is just one client — any tool that speaks the OpenAI API contract can connect to the gateway and get access to all your LLMs.
 
 The three-resource pattern (Backend → Gateway → Route) is simple enough to understand in minutes but powerful enough to handle complex multi-provider, multi-model, multi-cluster setups. And because it's all Kubernetes-native — using Gateway API CRDs managed by ArgoCD — it fits into any GitOps workflow you already have.
 
 The full configuration for this setup is open source in the [k8s-goose repository](https://github.com/sebastianmaniak/k8s-goose), which includes the ArgoCD GitOps pipeline, all YAML manifests, and scripts for deploying on any Kubernetes cluster.
 
-For a step-by-step walkthrough of the AgentGateway setup itself, see [Setting Up Enterprise AgentGateway on Kind Clusters](/articles/01-setting-up-enterprise-agentgateway-on-kind-clusters).
+For a step-by-step walkthrough of the agentgateway setup itself, see [Setting Up Enterprise agentgateway on Kind Clusters](/articles/01-setting-up-enterprise-agentgateway-on-kind-clusters).
