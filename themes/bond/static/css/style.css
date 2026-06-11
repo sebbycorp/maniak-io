@@ -378,27 +378,40 @@ input::placeholder { color: var(--faint); }
 .mk-footer-links a { font-family: var(--f-mono); font-size: 11px; letter-spacing: .04em; color: var(--on-dark-3); transition: color .15s; }
 .mk-footer-links a:hover { color: #fff; }
 
+/* mobile-only socials inside the dropdown menu (hidden on desktop) */
+.mk-nav-mobile-socials { display: none; }
+
 /* ============ RESPONSIVE ============ */
 @media (max-width: 860px) {
-  .mk-nav { position: relative; flex-wrap: wrap; }
+  .mk-nav { position: relative; flex-wrap: wrap; gap: 10px; }
   .mk-nav-toggle { display: flex; order: 3; }
   .mk-brand { order: 1; }
-  .mk-nav-actions { order: 2; margin-left: auto; }
+  .mk-nav-actions { order: 2; margin-left: auto; gap: 6px; }
+  /* declutter: social icons live in the dropdown + footer on mobile, not the bar */
+  .mk-nav-actions .mk-soc { display: none; }
+  .mk-search-btn { margin-left: 0; padding: 10px; }
+  .mk-search-btn span { display: none; }
   .mk-nav-links {
     order: 4; flex-basis: 100%; flex-direction: column; align-items: flex-start; gap: 14px;
-    max-height: 0; overflow: hidden; opacity: 0; transition: max-height .25s var(--ease), opacity .2s, padding .25s;
+    max-height: 0; overflow: hidden; opacity: 0; transition: max-height .3s var(--ease), opacity .2s, padding .3s;
     padding: 0 4px;
   }
-  .mk-nav.open .mk-nav-links { max-height: 240px; opacity: 1; padding: 12px 4px 6px; }
-  .mk-search-btn span { display: none; }
-  .mk-search-btn { padding: 10px; }
-  .mk-hero { padding: 128px 0 40px; }
+  .mk-nav.open .mk-nav-links { max-height: 320px; opacity: 1; padding: 14px 4px 8px; }
+  .mk-nav-mobile-socials {
+    display: flex; gap: 22px; width: 100%; margin-top: 4px; padding-top: 14px;
+    border-top: 1px solid var(--line);
+  }
+  .mk-nav-mobile-socials a {
+    font-family: var(--f-mono); font-size: 12px; letter-spacing: .04em; color: var(--muted);
+  }
+  .mk-nav-mobile-socials a:hover { color: var(--red); }
+  .mk-hero { padding: 124px 0 40px; }
   .mk-featured { padding: 32px 26px; }
   .mk-stats { gap: 24px; }
   .mk-article { padding-top: 110px; }
 }
 @media (max-width: 520px) {
   .mk-grid, .mk-grid-video { grid-template-columns: 1fr; }
-  .mk-soc:nth-child(2) { display: none; }
   .mk-stat-div { display: none; }
+  .mk-brand-sub { display: none; }
 }

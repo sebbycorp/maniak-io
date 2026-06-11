@@ -273,3 +273,18 @@ That **User consumption** panel is the payoff of the `user.id` field in the conf
 Stay standalone for laptops, single VMs, demos, and MVPs — one binary, one config, done. Reach for the [OTel Collector pattern](/articles/2026-06-10-agentgateway-langfuse-integration-with-otel-collector/) when you need gRPC from the gateway, batching and retries under load, fan-out to more than one observability backend, or you simply don't want the Langfuse secret living anywhere near the gateway process.
 
 Same traces, same GenAI conventions — just a heavier, more flexible delivery path. Start here; grow into that.
+
+---
+
+## Get the code
+
+The complete, runnable setup — `config.yaml`, `run.sh`, and `test.sh` — lives in my demos repo:
+
+**→ [github.com/sebbycorp/agentgateway-demos/tree/main/08-standalone-langfuse](https://github.com/sebbycorp/agentgateway-demos/tree/main/08-standalone-langfuse)**
+
+Clone it, drop your keys into `.env`, and `./run.sh`:
+
+```bash
+git clone https://github.com/sebbycorp/agentgateway-demos.git
+cd agentgateway-demos/08-standalone-langfuse
+```
