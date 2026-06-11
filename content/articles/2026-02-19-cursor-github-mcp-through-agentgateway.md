@@ -1,8 +1,8 @@
 ---
-title: "Connect Any IDE to GitHub MCP Server Through AgentGateway"
+title: "Connect Any IDE to GitHub MCP Server Through agentgateway"
 publishDate: 2026-02-19
 author: "Sebastian Maniak"
-description: "Route MCP traffic from Cursor, VS Code, Windsurf, Claude Code, and OpenCode to GitHub's remote MCP server through Solo AgentGateway — with config examples for every IDE."
+description: "Route MCP traffic from Cursor, VS Code, Windsurf, Claude Code, and OpenCode to GitHub's remote MCP server through Solo agentgateway — with config examples for every IDE."
 ---
 
 ## Introduction
@@ -11,11 +11,11 @@ Modern AI-powered IDEs and coding agents ship with built-in MCP client support. 
 
 But connecting directly to GitHub means no visibility into what tools are being called, no rate limiting, and no centralized credential management. Every developer has their own PAT, every tool call goes straight to GitHub ungoverned.
 
-This guide shows you how to route MCP traffic from **any IDE** — Cursor, VS Code, Windsurf, Claude Code, or OpenCode — to **GitHub's remote MCP server** through **[Solo AgentGateway](https://agentgateway.dev)**. You deploy the gateway once, and every IDE on your team connects through it.
+This guide shows you how to route MCP traffic from **any IDE** — Cursor, VS Code, Windsurf, Claude Code, or OpenCode — to **GitHub's remote MCP server** through **[Solo agentgateway](https://agentgateway.dev)**. You deploy the gateway once, and every IDE on your team connects through it.
 
 ## What You Get
 
-- **One gateway, every IDE**: Deploy AgentGateway once, connect all your tools
+- **One gateway, every IDE**: Deploy agentgateway once, connect all your tools
 - **Centralized credentials**: GitHub PAT lives in a Kubernetes secret, not on every developer laptop
 - **Rate limiting**: Control tool call volume per IDE or per user
 - **Observability**: OpenTelemetry traces for every MCP interaction
@@ -29,7 +29,7 @@ This guide shows you how to route MCP traffic from **any IDE** — Cursor, VS Co
 ├──────────────┤  │
 │   Cursor     │──┤
 ├──────────────┤  │        ┌──────────────────┐        ┌──────────────────────────┐
-│   Windsurf   │──┼──MCP──▶│  AgentGateway    │──MCP──▶│  api.githubcopilot.com   │
+│   Windsurf   │──┼──MCP──▶│  agentgateway    │──MCP──▶│  api.githubcopilot.com   │
 ├──────────────┤  │        │  (K8s proxy)      │        │  (GitHub Remote MCP)     │
 │  Claude Code │──┤        └──────────────────┘        └──────────────────────────┘
 ├──────────────┤  │          │ Auth
@@ -57,7 +57,7 @@ Verify it's running:
 kubectl get nodes
 ```
 
-## Step 2: Install AgentGateway
+## Step 2: Install agentgateway
 
 Deploy the Kubernetes Gateway API CRDs:
 
@@ -65,7 +65,7 @@ Deploy the Kubernetes Gateway API CRDs:
 kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.0/standard-install.yaml
 ```
 
-Install the AgentGateway CRDs and control plane:
+Install the agentgateway CRDs and control plane:
 
 ```bash
 helm upgrade -i --create-namespace \
@@ -84,7 +84,7 @@ Verify the control plane is running:
 kubectl get pods -n agentgateway-system
 ```
 
-## Step 3: Create an AgentGateway Proxy
+## Step 3: Create an agentgateway Proxy
 
 ```bash
 kubectl apply -f- <<EOF
@@ -110,7 +110,7 @@ kubectl rollout status deploy/agentgateway-proxy -n agentgateway-system
 
 ## Step 4: Configure the GitHub Remote MCP Backend
 
-GitHub hosts a remote MCP server at `https://api.githubcopilot.com/mcp/`. We point AgentGateway at it instead of deploying our own.
+GitHub hosts a remote MCP server at `https://api.githubcopilot.com/mcp/`. We point agentgateway at it instead of deploying our own.
 
 Create a secret with your GitHub PAT:
 
@@ -288,9 +288,9 @@ Open your IDE's AI chat and try:
 
 - *"List open issues in my repo"*
 - *"Create a new branch called feature/test"*
-- *"Search for files referencing AgentGateway"*
+- *"Search for files referencing agentgateway"*
 
-Every tool call flows through AgentGateway regardless of which IDE you're using. The gateway handles auth, logs the interaction, and forwards to GitHub.
+Every tool call flows through agentgateway regardless of which IDE you're using. The gateway handles auth, logs the interaction, and forwards to GitHub.
 
 ## Verifying Traffic
 
@@ -332,6 +332,6 @@ kind delete cluster --name agentgateway
 
 ## Conclusion
 
-Every AI-powered IDE now speaks MCP. But connecting each one directly to backend servers means fragmented credentials, zero visibility, and no governance. AgentGateway gives you a single control point — deploy it once, connect every IDE on your team, and get auth, rate limiting, and observability on every tool call.
+Every AI-powered IDE now speaks MCP. But connecting each one directly to backend servers means fragmented credentials, zero visibility, and no governance. agentgateway gives you a single control point — deploy it once, connect every IDE on your team, and get auth, rate limiting, and observability on every tool call.
 
 One gateway. Every IDE. Full visibility.

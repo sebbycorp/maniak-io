@@ -1,20 +1,20 @@
 ---
-title: "Setting Up Enterprise AgentGateway on Kind Clusters"
+title: "Setting Up Enterprise agentgateway on Kind Clusters"
 date: 2026-02-09
-description: "Complete guide to setting up Enterprise AgentGateway on kind clusters with comprehensive monitoring, security features, and production-ready configurations for development and testing environments."
+description: "Complete guide to setting up Enterprise agentgateway on kind clusters with comprehensive monitoring, security features, and production-ready configurations for development and testing environments."
 ---
 
 
 ## Introduction
 
-Enterprise AgentGateway by Solo.io is a powerful AI Gateway solution that provides unified access to multiple LLM providers with advanced features like routing, security, observability, and cost management. In this comprehensive guide, we'll walk you through setting up Enterprise AgentGateway on a kind (Kubernetes in Docker) cluster - perfect for development, testing, and learning environments.
+Enterprise agentgateway by Solo.io is a powerful AI Gateway solution that provides unified access to multiple LLM providers with advanced features like routing, security, observability, and cost management. In this comprehensive guide, we'll walk you through setting up Enterprise agentgateway on a kind (Kubernetes in Docker) cluster - perfect for development, testing, and learning environments.
 
 ## What You'll Learn
 
-- How to set up a kind cluster optimized for AgentGateway
-- Installing Kubernetes Gateway API and AgentGateway CRDs
-- Deploying the Enterprise AgentGateway controller
-- Configuring your first AgentGateway instance
+- How to set up a kind cluster optimized for agentgateway
+- Installing Kubernetes Gateway API and agentgateway CRDs
+- Deploying the Enterprise agentgateway controller
+- Configuring your first agentgateway instance
 - Validating your installation
 
 ## Prerequisites
@@ -31,7 +31,7 @@ Before starting this guide, ensure you have:
 
 ### Create Kind Cluster Configuration
 
-First, let's create a kind cluster with the proper configuration for running AgentGateway:
+First, let's create a kind cluster with the proper configuration for running agentgateway:
 
 ```bash
 cat <<EOF > kind-agentgateway-cluster.yaml
@@ -84,7 +84,7 @@ agentgateway-worker2         Ready    <none>          90s   v1.29.1
 
 ### Configure Required Variables
 
-Export your Solo.io trial license key and AgentGateway version:
+Export your Solo.io trial license key and agentgateway version:
 
 ```bash
 # Replace with your actual license key from Solo.io
@@ -93,12 +93,12 @@ export ENTERPRISE_AGW_VERSION="2.1.0"
 
 # Verify the variables are set
 echo "License Key: $SOLO_TRIAL_LICENSE_KEY"
-echo "AgentGateway Version: $ENTERPRISE_AGW_VERSION"
+echo "agentgateway Version: $ENTERPRISE_AGW_VERSION"
 ```
 
 ## Installing Kubernetes Gateway API
 
-AgentGateway builds on the Kubernetes Gateway API. We'll use the experimental CRDs to enable advanced features:
+agentgateway builds on the Kubernetes Gateway API. We'll use the experimental CRDs to enable advanced features:
 
 ```bash
 # Install Kubernetes Gateway API CRDs (experimental for advanced features)
@@ -130,15 +130,15 @@ tlsroutes                         gateway.networking.k8s.io/v1alpha3   true     
 udproutes                         gateway.networking.k8s.io/v1alpha2   true         UDPRoute
 ```
 
-## Installing Enterprise AgentGateway
+## Installing Enterprise agentgateway
 
 ### Create Namespace and Install CRDs
 
 ```bash
-# Create namespace for AgentGateway
+# Create namespace for agentgateway
 kubectl create namespace enterprise-agentgateway
 
-# Install Enterprise AgentGateway CRDs
+# Install Enterprise agentgateway CRDs
 helm upgrade -i --create-namespace --namespace enterprise-agentgateway \
     --version $ENTERPRISE_AGW_VERSION enterprise-agentgateway-crds \
     oci://us-docker.pkg.dev/solo-public/enterprise-agentgateway/charts/enterprise-agentgateway-crds
@@ -149,7 +149,7 @@ kubectl wait --for condition=Established crd/agentgatewayparameters.agentgateway
 kubectl wait --for condition=Established crd/agentgatewaypolicies.agentgateway.dev
 ```
 
-### Verify AgentGateway CRDs
+### Verify agentgateway CRDs
 
 ```bash
 kubectl api-resources | awk 'NR==1 || /enterpriseagentgateway\\.solo\\.io|agentgateway\\.dev|ratelimit\\.solo\\.io|extauth\\.solo\\.io/'
@@ -167,7 +167,7 @@ authconfigs                         ac                extauth.solo.io/v1        
 ratelimitconfigs                    rlc               ratelimit.solo.io/v1alpha1                true         RateLimitConfig
 ```
 
-## Install Enterprise AgentGateway Controller
+## Install Enterprise agentgateway Controller
 
 ```bash
 helm upgrade -i -n enterprise-agentgateway enterprise-agentgateway \
@@ -202,9 +202,9 @@ NAME                                       READY   STATUS    RESTARTS   AGE
 enterprise-agentgateway-5fc9d95758-n8vvb   1/1     Running   0          87s
 ```
 
-## Deploy AgentGateway Instance
+## Deploy agentgateway Instance
 
-Now let's create an AgentGateway instance with optimized configuration for kind clusters:
+Now let's create an agentgateway instance with optimized configuration for kind clusters:
 
 ```bash
 kubectl apply -f- <<'EOF'
@@ -353,8 +353,8 @@ Expected response: HTTP 404 (which is correct - no routes configured yet)
 ### What We've Deployed
 
 1. **Kubernetes Gateway API**: Standard APIs for traffic management
-2. **Enterprise AgentGateway Controller**: Manages AgentGateway lifecycle
-3. **AgentGateway Data Plane**: Routes traffic to AI providers
+2. **Enterprise agentgateway Controller**: Manages agentgateway lifecycle
+3. **agentgateway Data Plane**: Routes traffic to AI providers
 4. **Shared Extensions**:
    - **ext-auth-service**: Handles authentication (JWT, API keys)
    - **rate-limiter**: Manages rate limiting and quotas  
@@ -368,19 +368,19 @@ Expected response: HTTP 404 (which is correct - no routes configured yet)
 
 ## Environment Setup Script
 
-Create a helper script for managing your AgentGateway environment:
+Create a helper script for managing your agentgateway environment:
 
 ```bash
 cat <<'EOF' > agentgateway-env.sh
 #!/bin/bash
 
-# AgentGateway Environment Setup Script
+# agentgateway Environment Setup Script
 export SOLO_TRIAL_LICENSE_KEY="${SOLO_TRIAL_LICENSE_KEY:-your-license-key-here}"
 export ENTERPRISE_AGW_VERSION="2.1.0"
 
 # Helper functions
 agw_status() {
-    echo "=== AgentGateway Status ==="
+    echo "=== agentgateway Status ==="
     kubectl get pods -n enterprise-agentgateway
     echo ""
     kubectl get gateway agentgateway -n enterprise-agentgateway
@@ -391,12 +391,12 @@ agw_logs() {
 }
 
 agw_reset() {
-    echo "Resetting AgentGateway..."
+    echo "Resetting agentgateway..."
     kubectl delete namespace enterprise-agentgateway
     # Re-run installation commands
 }
 
-echo "AgentGateway environment loaded!"
+echo "agentgateway environment loaded!"
 echo "Available commands: agw_status, agw_logs, agw_reset"
 EOF
 
@@ -445,7 +445,7 @@ kubectl get gatewayclass enterprise-agentgateway -o yaml
 When you're done testing, clean up your environment:
 
 ```bash
-# Delete the AgentGateway installation
+# Delete the agentgateway installation
 helm uninstall enterprise-agentgateway -n enterprise-agentgateway
 helm uninstall enterprise-agentgateway-crds -n enterprise-agentgateway
 
@@ -458,20 +458,20 @@ kind delete cluster --name agentgateway
 
 ## Next Steps
 
-Now that you have AgentGateway running on your kind cluster, you're ready to:
+Now that you have agentgateway running on your kind cluster, you're ready to:
 
 1. **Set up monitoring and observability** - Install Grafana, Prometheus, and Tempo for comprehensive observability
 2. **Configure your first AI route** - Connect to OpenAI, Anthropic, or other providers
 3. **Explore advanced features** - Security, rate limiting, and traffic management
 
-In our next blog post, we'll set up a complete observability stack to monitor your AgentGateway's performance, costs, and usage patterns.
+In our next blog post, we'll set up a complete observability stack to monitor your agentgateway's performance, costs, and usage patterns.
 
 ## Key Takeaways
 
-- Enterprise AgentGateway provides a unified interface for multiple AI providers
-- Kind clusters are perfect for development and testing AgentGateway
+- Enterprise agentgateway provides a unified interface for multiple AI providers
+- Kind clusters are perfect for development and testing agentgateway
 - The setup includes controller, data plane, and essential shared extensions
 - Proper observability configuration enables comprehensive monitoring
 - NodePort service configuration allows easy local access in kind environments
 
-With your AgentGateway foundation in place, you're ready to build sophisticated AI routing and management capabilities!
+With your agentgateway foundation in place, you're ready to build sophisticated AI routing and management capabilities!

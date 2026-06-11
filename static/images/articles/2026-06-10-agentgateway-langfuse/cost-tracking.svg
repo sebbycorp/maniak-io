@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="480" viewBox="0 0 1100 480">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#020617;stop-opacity:1" />
+    </linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#64748b"/>
+    </marker>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+    </pattern>
+  </defs>
+
+  <rect width="1100" height="480" fill="#020617"/>
+  <rect width="1100" height="480" fill="url(#grid)"/>
+
+  <!-- Title -->
+  <text x="550" y="38" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="17" font-weight="600">Cost Tracking Flow (Local Models)</text>
+
+  <!-- vLLM / Qwen -->
+  <g>
+    <rect x="50" y="90" width="200" height="100" rx="10" fill="#0f172a" stroke="#a78bfa" stroke-width="2"/>
+    <text x="150" y="120" text-anchor="middle" fill="#c4b5fd" font-family="JetBrains Mono, monospace" font-size="14" font-weight="600">vLLM + Qwen</text>
+    <text x="150" y="142" text-anchor="middle" fill="#64748b" font-family="JetBrains Mono, monospace" font-size="11">Local Model</text>
+    <text x="150" y="165" text-anchor="middle" fill="#64748b" font-family="JetBrains Mono, monospace" font-size="11">No real API cost</text>
+  </g>
+
+  <!-- Arrow -->
+  <line x1="250" y1="140" x2="320" y2="140" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- agentgateway -->
+  <g>
+    <rect x="320" y="90" width="220" height="100" rx="10" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+    <text x="430" y="120" text-anchor="middle" fill="#bae6fd" font-family="JetBrains Mono, monospace" font-size="14" font-weight="600">agentgateway</text>
+    <text x="430" y="145" text-anchor="middle" fill="#e0f2fe" font-family="JetBrains Mono, monospace" font-size="12">Emits token usage</text>
+    <text x="430" y="165" text-anchor="middle" fill="#64748b" font-family="JetBrains Mono, monospace" font-size="11">prompt + completion</text>
+  </g>
+
+  <!-- Arrow -->
+  <line x1="540" y1="140" x2="610" y2="140" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- OTel Collector -->
+  <g>
+    <rect x="610" y="90" width="200" height="100" rx="10" fill="#0f172a" stroke="#fbbf24" stroke-width="2"/>
+    <text x="710" y="120" text-anchor="middle" fill="#fde68a" font-family="JetBrains Mono, monospace" font-size="14" font-weight="600">OTel Collector</text>
+    <text x="710" y="145" text-anchor="middle" fill="#e0f2fe" font-family="JetBrains Mono, monospace" font-size="12">Forwards traces</text>
+    <text x="710" y="165" text-anchor="middle" fill="#64748b" font-family="JetBrains Mono, monospace" font-size="11">+ Basic Auth</text>
+  </g>
+
+  <!-- Arrow -->
+  <line x1="810" y1="140" x2="880" y2="140" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Langfuse -->
+  <g>
+    <rect x="880" y="70" width="180" height="140" rx="10" fill="#0f172a" stroke="#34d399" stroke-width="2"/>
+    <text x="970" y="100" text-anchor="middle" fill="#86efac" font-family="JetBrains Mono, monospace" font-size="14" font-weight="600">Langfuse</text>
+    
+    <rect x="900" y="115" width="140" height="35" rx="5" fill="#052e16"/>
+    <text x="970" y="138" text-anchor="middle" fill="#4ade80" font-family="JetBrains Mono, monospace" font-size="12">Model Pricing</text>
+    
+    <text x="970" y="175" text-anchor="middle" fill="#64748b" font-family="JetBrains Mono, monospace" font-size="11">Auto cost calc</text>
+  </g>
+
+  <!-- Bottom section: Model Pricing -->
+  <g>
+    <rect x="80" y="260" width="940" height="180" rx="12" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    
+    <text x="550" y="295" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="14" font-weight="600">Langfuse Model Pricing Configuration</text>
+
+    <!-- Table header -->
+    <rect x="120" y="315" width="860" height="35" rx="4" fill="#1e293b"/>
+    <text x="200" y="338" fill="#e0f2fe" font-family="JetBrains Mono, monospace" font-size="12">Model Name</text>
+    <text x="480" y="338" fill="#e0f2fe" font-family="JetBrains Mono, monospace" font-size="12">Input / 1M</text>
+    <text x="680" y="338" fill="#e0f2fe" font-family="JetBrains Mono, monospace" font-size="12">Output / 1M</text>
+    <text x="880" y="338" fill="#e0f2fe" font-family="JetBrains Mono, monospace" font-size="12">Cost</text>
+
+    <!-- Row -->
+    <rect x="120" y="355" width="860" height="35" rx="4" fill="#020617"/>
+    <text x="200" y="378" fill="#c4b5fd" font-family="JetBrains Mono, monospace" font-size="12">Qwen/Qwen3.6-35B-A3B-FP8</text>
+    <text x="480" y="378" fill="#86efac" font-family="JetBrains Mono, monospace" font-size="12">$0.00</text>
+    <text x="680" y="378" fill="#86efac" font-family="JetBrains Mono, monospace" font-size="12">$0.00</text>
+    <text x="880" y="378" fill="#64748b" font-family="JetBrains Mono, monospace" font-size="12">$0.00</text>
+
+    <text x="550" y="415" text-anchor="middle" fill="#64748b" font-family="JetBrains Mono, monospace" font-size="12">Token usage is automatically captured from agentgateway spans → cost calculated from model pricing</text>
+  </g>
+</svg>

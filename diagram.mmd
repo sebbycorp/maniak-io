@@ -1,0 +1,39 @@
+graph TD
+    subgraph TOOLS["Your AI Tools"]
+        CC["Claude Code<br/>{ANTHROPIC_BASE_URL: localhost:4001/claude}"]
+        CX["Codex<br/>{base_url: localhost:4001/codex/v1}"]
+        OC["OpenCode<br/>{base_url: localhost:4001/opencode/v1}"]
+    end
+
+    subgraph GW["agentgateway Proxy<br/>(localhost:4001 or :4060)"]
+        ROUTE_C["/claude<br/>→ Anthropic<br/><i>P1: Subscription</i><br/><i>P2: API Key via backendAuth</i>"]
+        ROUTE_CX["/codex<br/>→ OpenAI<br/>hostOverride: chatgpt.com:443<br/><i>P1: Subscription</i><br/><i>P2: API Key via backendAuth</i>"]
+        ROUTE_OC["/opencode<br/>→ OpenAI-compatible<br/><i>P2: API Key</i>"]
+        
+        SECURITY["Security Layers<br/>├─ Rate Limiting<br/>├─ JWT Auth<br/>├─ Input Validation<br/>├─ Output Filtering<br/>└─ Request/Response Transform"]
+    end
+
+    subgraph UPSTREAM["Upstream Providers"]
+        ANTH["Anthropic API<br/>api.anthropic.com:443"]
+        OAI["OpenAI<br/>chatgpt.com:443"]
+    end
+
+    CC -->|HTTP| GW
+    CX -->|HTTP| GW
+    OC -->|HTTP| GW
+    
+    ROUTE_C --> ANTH
+    ROUTE_CX --> OAI
+    ROUTE_OC --> OAI
+    
+    GW -.->|Apply policies| SECURITY
+    
+    classDef tools fill:#1e3a1e,stroke:#56d364,color:#fff;
+    classDef gw fill:#1a1e2e,stroke:#58a6ff,color:#fff;
+    classDef up fill:#1e1e3a,stroke:#bc8cff,color:#fff;
+    classDef sec fill:#2e1a1a,stroke:#f0883e,color:#fff;
+    
+    class CC,CX,OC tools;
+    class GW,ROUTE_C,ROUTE_CX,ROUTE_OC gw;
+    class ANTH,OAI up;
+    class SECURITY sec;
