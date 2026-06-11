@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="520" viewBox="0 0 1100 520">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#020617;stop-opacity:1" />
+    </linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#64748b"/>
+    </marker>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1100" height="520" fill="#020617"/>
+  <rect width="1100" height="520" fill="url(#grid)"/>
+
+  <!-- Title -->
+  <text x="550" y="40" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="18" font-weight="600">agentgateway → Langfuse Trace Flow</text>
+
+  <!-- agentgateway box -->
+  <g>
+    <rect x="60" y="120" width="240" height="140" rx="12" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+    <text x="180" y="155" text-anchor="middle" fill="#bae6fd" font-family="JetBrains Mono, monospace" font-size="15" font-weight="600">agentgateway</text>
+    <text x="180" y="178" text-anchor="middle" fill="#64748b" font-family="JetBrains Mono, monospace" font-size="12">Data Plane Proxy</text>
+    
+    <rect x="85" y="195" width="190" height="48" rx="6" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+    <text x="180" y="215" text-anchor="middle" fill="#e0f2fe" font-family="JetBrains Mono, monospace" font-size="12">OTLP gRPC</text>
+    <text x="180" y="232" text-anchor="middle" fill="#64748b" font-family="JetBrains Mono, monospace" font-size="11">no auth</text>
+  </g>
+
+  <!-- Arrow 1 -->
+  <line x1="300" y1="190" x2="380" y2="190" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- OTel Collector box -->
+  <g>
+    <rect x="380" y="100" width="320" height="180" rx="12" fill="#0f172a" stroke="#fbbf24" stroke-width="2"/>
+    <text x="540" y="130" text-anchor="middle" fill="#fde68a" font-family="JetBrains Mono, monospace" font-size="15" font-weight="600">OpenTelemetry Collector</text>
+    <text x="540" y="150" text-anchor="middle" fill="#64748b" font-family="JetBrains Mono, monospace" font-size="12">otel-collector.kagent</text>
+
+    <!-- Internal boxes -->
+    <rect x="400" y="165" width="130" height="50" rx="6" fill="#1e293b" stroke="#475569"/>
+    <text x="465" y="185" text-anchor="middle" fill="#e0f2fe" font-family="JetBrains Mono, monospace" font-size="11">OTLP Receiver</text>
+    <text x="465" y="200" text-anchor="middle" fill="#64748b" font-family="JetBrains Mono, monospace" font-size="10">gRPC :4317</text>
+
+    <rect x="550" y="165" width="130" height="50" rx="6" fill="#1e293b" stroke="#475569"/>
+    <text x="615" y="185" text-anchor="middle" fill="#e0f2fe" font-family="JetBrains Mono, monospace" font-size="11">OTLP/HTTP Exporter</text>
+    <text x="615" y="200" text-anchor="middle" fill="#64748b" font-family="JetBrains Mono, monospace" font-size="10">+ Basic Auth</text>
+  </g>
+
+  <!-- Arrow 2 -->
+  <line x1="700" y1="190" x2="780" y2="190" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Langfuse box -->
+  <g>
+    <rect x="780" y="120" width="260" height="140" rx="12" fill="#0f172a" stroke="#34d399" stroke-width="2"/>
+    <text x="910" y="155" text-anchor="middle" fill="#86efac" font-family="JetBrains Mono, monospace" font-size="15" font-weight="600">Langfuse</text>
+    <text x="910" y="175" text-anchor="middle" fill="#64748b" font-family="JetBrains Mono, monospace" font-size="12">Self-hosted</text>
+
+    <rect x="805" y="195" width="210" height="48" rx="6" fill="#1e293b" stroke="#475569"/>
+    <text x="910" y="215" text-anchor="middle" fill="#e0f2fe" font-family="JetBrains Mono, monospace" font-size="12">/api/public/otel</text>
+    <text x="910" y="232" text-anchor="middle" fill="#64748b" font-family="JetBrains Mono, monospace" font-size="11">Traces + Cost</text>
+  </g>
+
+  <!-- Legend -->
+  <g>
+    <rect x="60" y="420" width="980" height="70" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="80" y="448" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="12">Legend:</text>
+    
+    <rect x="170" y="435" width="18" height="18" rx="3" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+    <text x="200" y="450" fill="#bae6fd" font-family="JetBrains Mono, monospace" font-size="12">agentgateway</text>
+
+    <rect x="340" y="435" width="18" height="18" rx="3" fill="#0f172a" stroke="#fbbf24" stroke-width="2"/>
+    <text x="370" y="450" fill="#fde68a" font-family="JetBrains Mono, monospace" font-size="12">OpenTelemetry Collector</text>
+
+    <rect x="590" y="435" width="18" height="18" rx="3" fill="#0f172a" stroke="#34d399" stroke-width="2"/>
+    <text x="620" y="450" fill="#86efac" font-family="JetBrains Mono, monospace" font-size="12">Langfuse</text>
+
+    <text x="780" y="450" fill="#64748b" font-family="JetBrains Mono, monospace" font-size="12">All components run inside the Kubernetes cluster</text>
+  </g>
+</svg>

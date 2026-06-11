@@ -24,33 +24,7 @@ This is the exact pattern running in production on the k8s-iceman cluster.
 
 ## Architecture
 
-```mermaid
-flowchart LR
-    subgraph AG["agentgateway<br/>(Data Plane)"]
-        A[LLM Request]
-    end
-
-    subgraph COLLECTOR["OpenTelemetry Collector<br/>otel-collector.kagent"]
-        B[OTLP gRPC Receiver]
-        C[Batch + Memory Limiter]
-        D[OTLP/HTTP Exporter<br/>+ Basic Auth]
-    end
-
-    subgraph LANG["Langfuse"]
-        E[OTEL Ingestion<br/>/api/public/otel]
-        F[Traces + Cost<br/>Dashboard]
-    end
-
-    A -->|OTLP gRPC<br/>no auth| B
-    B --> C
-    C --> D
-    D -->|OTLP HTTP + Auth| E
-    E --> F
-
-    style A fill:#e0f2fe
-    style D fill:#fef3c7
-    style F fill:#dcfce7
-```
+![agentgateway to Langfuse trace flow](/images/articles/2026-06-10-agentgateway-langfuse/otel-flow.svg)
 
 This design keeps agentgateway clean while the collector handles authentication and enrichment.
 
@@ -182,14 +156,9 @@ Even when using local models (Qwen via vLLM), you can still get proper cost trac
 
 ### Step 1: Define Model Pricing in Langfuse
 
-Go to **Settings → Models → Add model** and create an entry:
+Go to **Settings → Models → Add model** and create an entry.
 
-| Field                        | Value                                      |
-|-----------------------------|--------------------------------------------|
-| Model name                  | `Qwen/Qwen3.6-35B-A3B-FP8`                 |
-| Match type                  | Exact match                                |
-| Input price per 1M tokens   | `0` (or your internal compute cost)        |
-| Output price per 1M tokens  | `0`                                        |
+![Cost tracking configuration](/images/articles/2026-06-10-agentgateway-langfuse/cost-tracking.svg)
 
 Because agentgateway already emits `gen_ai.usage.prompt_tokens` and `gen_ai.usage.completion_tokens`, Langfuse will automatically calculate cost once the model name matches.
 
