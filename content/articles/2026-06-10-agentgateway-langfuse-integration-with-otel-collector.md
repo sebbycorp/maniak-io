@@ -1,5 +1,5 @@
 ---
-title: "Production Langfuse Integration with agentgateway (OTel Collector Pattern)"
+title: "Langfuse Integration with agentgateway (OTel Collector Pattern) for cost controls, observability"
 date: 2026-06-10
 description: "Connect agentgateway to Langfuse using an in-cluster OpenTelemetry Collector. This pattern avoids auth headaches and gives you clean, gateway-level tracing + cost tracking for every LLM and tool call."
 ---
