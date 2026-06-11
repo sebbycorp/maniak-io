@@ -1,14 +1,23 @@
 {{ define "main" }}
-<div class="section-header">
-  <h2>Categories</h2>
-  <p>Browse articles by category</p>
-</div>
-<div class="tags-overview">
-  {{ range .Site.Taxonomies.categories.Alphabetical }}
-  <a href="{{ .Page.Permalink }}" class="tag-card category-card">
-    <span class="tag-card-name">{{ .Page.Title }}</span>
-    <span class="tag-card-count">{{ .Count }}</span>
-  </a>
-  {{ end }}
-</div>
+<section class="mk-archive-hero">
+  <div class="mk-archive-rings"></div>
+  <div class="mk-wrap">
+    <div class="mk-kicker"><span class="mk-kicker-bar"></span>TOPICS</div>
+    <h1 class="mk-archive-title">All topics</h1>
+    <p class="mk-archive-sub">Every category across the archive.</p>
+  </div>
+</section>
+<section class="mk-wrap mk-section">
+  {{ $red := slice "AI" "AI & Agents" "Agents" }}
+  {{ $ink := slice "Kubernetes" "Infrastructure" "Networking" }}
+  <div class="mk-topics">
+    {{ range .Site.Taxonomies.categories.ByCount }}
+    {{ $color := "#C79200" }}{{ if in $red .Page.Title }}{{ $color = "#E5341F" }}{{ else if in $ink .Page.Title }}{{ $color = "#17181C" }}{{ end }}
+    <a href="{{ .Page.Permalink }}" class="mk-topic">
+      <span class="mk-topic-label"><span class="mk-topic-bar" style="background:{{ $color }};"></span>{{ .Page.Title }}</span>
+      <span class="mk-topic-count">{{ .Count }}</span>
+    </a>
+    {{ end }}
+  </div>
+</section>
 {{ end }}

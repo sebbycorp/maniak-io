@@ -1,236 +1,107 @@
 {{ define "main" }}
 {{ $articles := where .Site.RegularPages "Section" "articles" }}
-{{ $latest3 := first 3 $articles }}
-{{ $rest := after 3 $articles }}
+{{ $featured := index $articles 0 }}
+{{ $recent := first 6 (after 1 $articles) }}
+{{ $catCount := len .Site.Taxonomies.categories }}
 
-<!-- Latest 3 Articles: Comic Panels -->
-<section class="comic-panels-section">
-  <div class="comic-panels-strip">
+{{ $red := slice "AI" "AI & Agents" "Agents" }}
+{{ $ink := slice "Kubernetes" "Infrastructure" "Networking" }}
 
-    <!-- Panel 1: SPLASH — big dramatic panel -->
-    {{ with index $latest3 0 }}
-    <a href="{{ .Permalink }}" class="comic-panel panel-splash">
-      <div class="panel-inner">
-        <div class="starburst">NEW!</div>
-        <div class="panel-caption caption-top">{{ .Date.Format "02 Jan 2006" }}</div>
-        <h2 class="panel-title">{{ .Title }}</h2>
-        <div class="panel-tags">
-          {{ range .Params.tags }}<span class="tag-pill tag-pill-hero">{{ . }}</span>{{ end }}
-        </div>
-        <p class="panel-text">{{ .Summary | truncate 200 }}</p>
-        <span class="panel-action">Read more!</span>
-      </div>
-    </a>
-    {{ end }}
-
-    <div class="comic-panels-side">
-      <!-- Panel 2: NARRATION BOX style -->
-      {{ with index $latest3 1 }}
-      <a href="{{ .Permalink }}" class="comic-panel panel-narration">
-        <div class="panel-inner">
-          <div class="narration-box">
-            <span class="narration-label">Meanwhile...</span>
-          </div>
-          <h3 class="panel-title">{{ .Title }}</h3>
-          <div class="panel-tags">
-            {{ range .Params.tags }}<span class="tag-pill tag-sm">{{ . }}</span>{{ end }}
-          </div>
-          <p class="panel-text">{{ .Summary | truncate 130 }}</p>
-          <div class="panel-caption caption-bottom">{{ .Date.Format "02 Jan 2006" }} &middot; Read more &rarr;</div>
-        </div>
-      </a>
-      {{ end }}
-
-      <!-- Panel 3: SPEECH BUBBLE style -->
-      {{ with index $latest3 2 }}
-      <a href="{{ .Permalink }}" class="comic-panel panel-bubble">
-        <div class="panel-inner">
-          <div class="thought-dots">
-            <span></span><span></span><span></span>
-          </div>
-          <h3 class="panel-title">{{ .Title }}</h3>
-          <div class="panel-tags">
-            {{ range .Params.tags }}<span class="tag-pill tag-sm">{{ . }}</span>{{ end }}
-          </div>
-          <p class="panel-text">{{ .Summary | truncate 130 }}</p>
-          <div class="panel-caption caption-bottom">{{ .Date.Format "02 Jan 2006" }} &middot; Read more &rarr;</div>
-        </div>
-      </a>
-      {{ end }}
+<!-- ============ HERO ============ -->
+<section class="mk-hero">
+  <div class="mk-hero-rings mk-pulse"></div>
+  <div class="mk-hero-rings mk-hero-rings-red"></div>
+  <div class="mk-wrap mk-hero-inner">
+    <div class="mk-eyebrow"><span class="mk-eyebrow-dot"></span>Field notes — cloud &amp; AI infrastructure</div>
+    <h1 class="mk-hero-title">Technology.<br>Strategy.<br><span class="mk-red">Intelligence.</span></h1>
+    <p class="mk-hero-lede">{{ .Site.Params.author }} on running AI agents in production — agentgateway, kagent, MCP, A2A, and the Kubernetes plumbing that keeps them fast, observable, and safe.</p>
+    <div class="mk-hero-cta">
+      <a href="{{ "articles/" | relURL }}" class="mk-btn mk-btn-red">Browse all articles →</a>
+      <a href="{{ .Site.Params.youtubeChannel }}" target="_blank" rel="noopener" class="mk-btn mk-btn-ghost">Watch on YouTube</a>
     </div>
-
+    <div class="mk-stats">
+      <div class="mk-stat"><div class="mk-stat-num">{{ len $articles }}</div><div class="mk-stat-label">ARTICLES</div></div>
+      <div class="mk-stat-div"></div>
+      <div class="mk-stat"><div class="mk-stat-num">{{ $catCount }}</div><div class="mk-stat-label">TOPICS</div></div>
+      <div class="mk-stat-div"></div>
+      <div class="mk-stat"><div class="mk-stat-num mk-red">∞</div><div class="mk-stat-label">MCP · A2A · K8S</div></div>
+    </div>
   </div>
 </section>
 
-<!-- All Articles + Sidebar -->
-{{ if $rest }}
-<section class="home-section">
-  <div class="section-header">
-    <h2>More Articles</h2>
-  </div>
-  <div class="content-with-sidebar">
-    <div class="main-content">
-      <div class="comic-grid">
-        {{ range $i, $p := $rest }}
-        <div class="article-card">
-          <a href="{{ $p.Permalink }}">
-            <div class="card-accent-bar"></div>
-            <div class="card-body">
-              <div class="meta">{{ $p.Date.Format "02 Jan 2006" }}</div>
-              <h3>{{ $p.Title }}</h3>
-              <div class="card-tags">
-                {{ range $p.Params.tags }}<span class="tag-pill tag-sm">{{ . }}</span>{{ end }}
-              </div>
-              <p class="summary">{{ $p.Summary | truncate 120 }}</p>
-              <span class="read-more">Read more</span>
-            </div>
-          </a>
-        </div>
-        {{ end }}
+<!-- ============ FEATURED ============ -->
+{{ with $featured }}
+{{ $cat := "" }}{{ with .Params.categories }}{{ $cat = index . 0 }}{{ end }}
+{{ $color := "#C79200" }}{{ if in $red $cat }}{{ $color = "#E5341F" }}{{ else if in $ink $cat }}{{ $color = "#17181C" }}{{ end }}
+<section class="mk-wrap mk-section-featured">
+  <div class="mk-kicker"><span class="mk-kicker-bar"></span>FEATURED</div>
+  <a href="{{ .Permalink }}" class="mk-featured">
+    <div class="mk-featured-rings"></div>
+    <div class="mk-featured-rings mk-featured-rings-red"></div>
+    <div class="mk-featured-body">
+      <div class="mk-featured-meta">
+        <span class="mk-badge-new">NEW</span>
+        <span class="mk-featured-cat"><span class="mk-dot mk-dot-red"></span>{{ $cat }}</span>
+        <span class="mk-featured-date">{{ .Date.Format "02 Jan 2006" }}</span>
       </div>
+      <h2 class="mk-featured-title">{{ .Title }}</h2>
+      <p class="mk-featured-excerpt">{{ .Summary | plainify | truncate 220 }}</p>
+      <span class="mk-featured-link">Read the article →</span>
     </div>
-
-    <aside class="sidebar">
-      {{ with .Site.Taxonomies.categories }}
-      <div class="sidebar-section">
-        <h3 class="sidebar-title">Categories</h3>
-        <div class="sidebar-items">
-          {{ range .Alphabetical }}
-          <a href="{{ .Page.Permalink }}" class="category-pill">{{ .Page.Title }} <span class="tag-count">{{ .Count }}</span></a>
-          {{ end }}
-        </div>
-      </div>
-      {{ end }}
-
-      {{ with .Site.Taxonomies.tags }}
-      <div class="sidebar-section">
-        <h3 class="sidebar-title">Tags</h3>
-        <div class="sidebar-items">
-          {{ range .ByCount }}
-          <a href="{{ .Page.Permalink }}" class="tag-pill tag-sm">{{ .Page.Title }} <span class="tag-count">{{ .Count }}</span></a>
-          {{ end }}
-        </div>
-      </div>
-      {{ end }}
-    </aside>
-  </div>
+  </a>
 </section>
 {{ end }}
 
-<!-- YouTube: Latest 3 Videos -->
-<section class="home-section">
-  <div class="section-header">
-    <h2>YouTube</h2>
-    <p>Latest videos</p>
+<!-- ============ LATEST WRITING ============ -->
+<section class="mk-wrap mk-section">
+  <div class="mk-section-head">
+    <h2 class="mk-section-title">Latest writing</h2>
+    <a href="{{ "articles/" | relURL }}" class="mk-section-more">View the full archive →</a>
   </div>
-  <div id="youtube-grid" class="youtube-grid">
-    <div class="youtube-loading">Loading latest videos...</div>
-  </div>
-  <a href="{{ .Site.Params.youtubeChannel }}" target="_blank" rel="noopener" class="section-link">View Channel</a>
-</section>
-
-<!-- Social: Comic Panels -->
-<section class="home-section social-feed">
-  <div class="section-header">
-    <h2>Connect</h2>
-    <p>Follow the adventure across platforms</p>
-  </div>
-  <div class="social-panels">
-    <div class="social-panel panel-twitter">
-      <h3>X / Twitter</h3>
-      <div class="feed-embed twitter-embed-wrapper">
-        <a class="twitter-timeline"
-           data-theme="dark"
-           data-chrome="noheader nofooter noborders transparent"
-           href="https://twitter.com/sebbycorp">
-          Posts by @sebbycorp
-        </a>
-        <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
-      </div>
-    </div>
-    <div class="social-links-panel">
-      <h3>Join the Team</h3>
-      <div class="link-cards">
-        <a href="https://x.com/SebbyCorp/articles" target="_blank" rel="noopener" class="link-card card-red">
-          <span class="link-icon">&#x1D4E7;</span>
-          <span>Articles on X</span>
-        </a>
-        <a href="https://x.com/sebbycorp" target="_blank" rel="noopener" class="link-card card-blue">
-          <span class="link-icon">&#x1D4E7;</span>
-          <span>Follow on X</span>
-        </a>
-        <a href="{{ .Site.Params.youtubeChannel }}" target="_blank" rel="noopener" class="link-card card-green">
-          <span class="link-icon">&#9654;</span>
-          <span>YouTube</span>
-        </a>
-        <a href="{{ .Site.Params.linkedinURL }}" target="_blank" rel="noopener" class="link-card card-purple">
-          <span class="link-icon">&#x1F4BC;</span>
-          <span>LinkedIn</span>
-        </a>
-      </div>
-    </div>
+  <div class="mk-grid">
+    {{ range $recent }}{{ partial "article-card.html" . }}{{ end }}
   </div>
 </section>
 
-<!-- YouTube: Fetch latest 3 videos via RSS -->
-<script>
-(function() {
-  var channelId = 'UCAP1CQwTOLlplBAODlmF2Vw';
-  var grid = document.getElementById('youtube-grid');
-  var rssUrl = 'https://www.youtube.com/feeds/videos.xml?channel_id=' + channelId;
-  // Use a CORS proxy to fetch the RSS feed
-  var proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(rssUrl);
+<!-- ============ BROWSE BY TOPIC ============ -->
+<section class="mk-wrap mk-section">
+  <h2 class="mk-section-title mk-mb">Browse by topic</h2>
+  <div class="mk-topics">
+    {{ range $name, $taxo := .Site.Taxonomies.categories }}
+    {{ $color := "#C79200" }}{{ if in $red $taxo.Page.Title }}{{ $color = "#E5341F" }}{{ else if in $ink $taxo.Page.Title }}{{ $color = "#17181C" }}{{ end }}
+    <a href="{{ $taxo.Page.Permalink }}" class="mk-topic">
+      <span class="mk-topic-label"><span class="mk-topic-bar" style="background:{{ $color }};"></span>{{ $taxo.Page.Title }}</span>
+      <span class="mk-topic-count">{{ $taxo.Count }}</span>
+    </a>
+    {{ end }}
+  </div>
+</section>
 
-  fetch(proxyUrl)
-    .then(function(r) { return r.text(); })
-    .then(function(xml) {
-      var parser = new DOMParser();
-      var doc = parser.parseFromString(xml, 'text/xml');
-      var entries = doc.querySelectorAll('entry');
-      var videos = [];
-
-      for (var i = 0; i < Math.min(3, entries.length); i++) {
-        var entry = entries[i];
-        var videoId = entry.querySelector('videoId') ?
-          entry.querySelector('videoId').textContent :
-          entry.querySelector('id').textContent.split(':').pop();
-        var title = entry.querySelector('title').textContent;
-        var published = entry.querySelector('published').textContent;
-        var date = new Date(published);
-        var dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-        videos.push({ id: videoId, title: title, date: dateStr });
-      }
-
-      if (!videos.length) {
-        grid.innerHTML = fallbackEmbed();
-        return;
-      }
-
-      grid.innerHTML = videos.map(function(v) {
-        return '<div class="youtube-card">' +
-          '<div class="video-container">' +
-            '<iframe src="https://www.youtube.com/embed/' + v.id + '" title="' + v.title.replace(/"/g, '&quot;') + '" ' +
-            'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>' +
-          '</div>' +
-          '<div class="youtube-card-info">' +
-            '<h4>' + v.title + '</h4>' +
-            '<span class="meta">' + v.date + '</span>' +
-          '</div>' +
-        '</div>';
-      }).join('');
-    })
-    .catch(function() {
-      grid.innerHTML = fallbackEmbed();
-    });
-
-  function fallbackEmbed() {
-    return '<div class="youtube-card" style="grid-column:1/-1">' +
-      '<div class="video-container">' +
-        '<iframe src="https://www.youtube.com/embed?listType=playlist&list=UUAP1CQwTOLlplBAODlmF2Vw" ' +
-        'title="Latest Videos" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>' +
-      '</div></div>';
-  }
-})();
-</script>
-
+<!-- ============ YOUTUBE ============ -->
+<section class="mk-wrap mk-section">
+  <div class="mk-section-head">
+    <div>
+      <div class="mk-kicker"><span class="mk-kicker-bar"></span>ON YOUTUBE</div>
+      <h2 class="mk-section-title">Watch the walkthroughs</h2>
+    </div>
+    <a href="{{ .Site.Params.youtubeChannel }}" target="_blank" rel="noopener" class="mk-btn mk-btn-ghost mk-btn-sm">@professorseb →</a>
+  </div>
+  <div class="mk-grid mk-grid-video">
+    {{ $videos := slice
+      (dict "title" "agentgateway: route every LLM call through one gateway" "tag" "AGENTGATEWAY" "dur" "14:02")
+      (dict "title" "kagent on kind with a local vLLM + Qwen3 backend" "tag" "KAGENT" "dur" "21:37")
+      (dict "title" "Human-in-the-loop tool approval for AI agents" "tag" "HITL" "dur" "11:48")
+    }}
+    {{ range $videos }}
+    <a href="{{ $.Site.Params.youtubeChannel }}" target="_blank" rel="noopener" class="mk-video">
+      <div class="mk-video-thumb">
+        <span class="mk-video-tag">{{ .tag }}</span>
+        <span class="mk-video-dur">{{ .dur }}</span>
+        <span class="mk-video-play"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"></path></svg></span>
+      </div>
+      <div class="mk-video-body"><h3 class="mk-video-title mk-clamp2">{{ .title }}</h3></div>
+    </a>
+    {{ end }}
+  </div>
+</section>
 {{ end }}

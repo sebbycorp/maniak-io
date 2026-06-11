@@ -1,24 +1,19 @@
 {{ define "main" }}
-<div class="section-header">
-  <h2>Posts</h2>
-  <p>Latest from X / Twitter &mdash; @sebbycorp</p>
-</div>
-
-<div class="posts-section">
-  <div class="embed-container">
-    <a class="twitter-timeline"
-       data-theme="dark"
-       data-chrome="noheader nofooter noborders transparent"
-       data-height="800"
-       href="https://twitter.com/sebbycorp">
-      Posts by @sebbycorp
-    </a>
+<section class="mk-archive-hero">
+  <div class="mk-archive-rings"></div>
+  <div class="mk-wrap">
+    <div class="mk-kicker"><span class="mk-kicker-bar"></span>ON X</div>
+    <h1 class="mk-archive-title">Posts</h1>
+    <p class="mk-archive-sub">Latest from X / Twitter — @{{ .Site.Params.twitterHandle }}.</p>
+  </div>
+</section>
+<section class="mk-wrap mk-section mk-yt">
+  <div class="mk-yt-card mk-posts-embed">
+    <a class="twitter-timeline" data-chrome="noheader nofooter noborders transparent" data-height="800" href="https://twitter.com/{{ .Site.Params.twitterHandle }}">Posts by @{{ .Site.Params.twitterHandle }}</a>
     <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
   </div>
-  <div style="text-align: center; margin-top: 2rem;">
-    <a href="https://x.com/SebbyCorp/articles" target="_blank" rel="noopener" class="channel-link">
-      View Articles on X
-    </a>
+  <div class="mk-yt-cta">
+    <a href="https://x.com/SebbyCorp/articles" target="_blank" rel="noopener" class="mk-btn mk-btn-red">View articles on X →</a>
   </div>
-</div>
+</section>
 {{ end }}

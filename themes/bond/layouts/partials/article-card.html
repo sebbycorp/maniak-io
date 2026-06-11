@@ -1,0 +1,22 @@
+{{/* Editorial article card. Pass a Page as the context. */}}
+{{- $p := . -}}
+{{- $red := slice "AI" "AI & Agents" "Agents" -}}
+{{- $ink := slice "Kubernetes" "Infrastructure" "Networking" -}}
+{{- $cat := "" -}}{{- with $p.Params.categories }}{{ $cat = index . 0 }}{{ end -}}
+{{- $color := "#C79200" -}}
+{{- if in $red $cat }}{{ $color = "#E5341F" }}{{ else if in $ink $cat }}{{ $color = "#17181C" }}{{ end -}}
+{{- $tags := slice -}}{{- range $p.Params.tags }}{{ $tags = $tags | append (lower .) }}{{ end -}}
+{{- $excerpt := $p.Summary | plainify | truncate 160 -}}
+{{- $search := lower (printf "%s %s %s %s" $p.Title $excerpt $cat (delimit ($p.Params.tags | default slice) " ")) -}}
+<a href="{{ $p.Permalink }}" class="mk-card" data-cat="{{ $cat }}" data-tags="{{ delimit $tags "," }}" data-search="{{ $search }}">
+  <div class="mk-card-meta">
+    <span class="mk-dot" style="background:{{ $color }};"></span>
+    <span class="mk-cat" style="color:{{ $color }};">{{ $cat }}</span>
+    <span class="mk-date">{{ $p.Date.Format "02 Jan 2006" }}</span>
+  </div>
+  <h3 class="mk-card-title mk-clamp3">{{ $p.Title }}</h3>
+  <p class="mk-card-excerpt mk-clamp2">{{ $excerpt }}</p>
+  <div class="mk-card-tags">
+    {{ range first 3 ($p.Params.tags | default slice) }}<span class="mk-tag">{{ . }}</span>{{ end }}
+  </div>
+</a>

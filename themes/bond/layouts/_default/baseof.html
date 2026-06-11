@@ -1,28 +1,62 @@
 <!DOCTYPE html>
-<html lang="{{ .Site.LanguageCode }}" data-theme="dark">
+<html lang="{{ .Site.LanguageCode }}">
 <head>
-  <script>
-    (function() {
-      var t = localStorage.getItem('theme') || 'dark';
-      document.documentElement.setAttribute('data-theme', t);
-    })();
-  </script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ if not .IsHome }}{{ .Title }} | {{ end }}{{ .Site.Title }}</title>
   <meta name="description" content="{{ with .Description }}{{ . }}{{ else }}{{ .Site.Params.description }}{{ end }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ "css/style.css" | relURL }}">
+  <link rel="stylesheet" href="{{ "css/syntax.css" | relURL }}">
   <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
   <script>
     (function() {
-      var t = localStorage.getItem('theme') || 'dark';
+      var mkVars = {
+        primaryColor: '#FFFFFF',
+        primaryTextColor: '#17181C',
+        primaryBorderColor: '#E5341F',
+        lineColor: '#17181C',
+        secondaryColor: '#FAF8F3',
+        secondaryTextColor: '#17181C',
+        secondaryBorderColor: '#E7E3D9',
+        tertiaryColor: '#F1EFE9',
+        tertiaryTextColor: '#17181C',
+        tertiaryBorderColor: '#E7E3D9',
+        noteBkgColor: '#FFF7D6',
+        noteTextColor: '#17181C',
+        noteBorderColor: '#FFC528',
+        actorBkg: '#FFFFFF',
+        actorTextColor: '#17181C',
+        actorBorder: '#E5341F',
+        actorLineColor: '#9A9CA3',
+        signalColor: '#17181C',
+        signalTextColor: '#17181C',
+        labelBoxBkgColor: '#F1EFE9',
+        labelBoxBorderColor: '#E7E3D9',
+        labelTextColor: '#17181C',
+        loopTextColor: '#17181C',
+        activationBkgColor: '#FFFFFF',
+        activationBorderColor: '#E5341F',
+        sequenceNumberColor: '#FFFFFF',
+        background: '#FAF8F3',
+        mainBkg: '#FFFFFF',
+        nodeBorder: '#E5341F',
+        clusterBkg: '#FAF8F3',
+        clusterBorder: '#E7E3D9',
+        titleColor: '#E5341F',
+        edgeLabelBackground: '#FAF8F3',
+        nodeTextColor: '#17181C'
+      };
       mermaid.initialize({
         startOnLoad: true,
-        theme: t === 'light' ? 'default' : 'dark',
-        securityLevel: 'loose'
+        theme: 'base',
+        themeVariables: mkVars,
+        securityLevel: 'loose',
+        fontFamily: '"DM Sans", ui-sans-serif, sans-serif',
+        flowchart: { curve: 'basis', padding: 20 },
+        sequence: { mirrorActors: false, bottomMarginAdj: 2, actorFontSize: 14, noteFontSize: 13, messageFontSize: 13 }
       });
     })();
   </script>
@@ -37,22 +71,11 @@
   {{ partial "footer.html" . }}
 
   <script>
-    function toggleTheme() {
-      var current = document.documentElement.getAttribute('data-theme');
-      var next = current === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', next);
-      localStorage.setItem('theme', next);
-      // Re-init mermaid with new theme
-      if (typeof mermaid !== 'undefined') {
-        mermaid.initialize({ theme: next === 'light' ? 'default' : 'dark', securityLevel: 'loose' });
-      }
-    }
-
     // Convert mermaid code blocks to mermaid divs
     document.addEventListener('DOMContentLoaded', function() {
       document.querySelectorAll('pre > code.language-mermaid').forEach(function(el) {
         var pre = el.parentElement;
-        var div = document.createElement('pre');
+        var div = document.createElement('div');
         div.className = 'mermaid';
         div.textContent = el.textContent;
         pre.parentElement.replaceChild(div, pre);
@@ -60,13 +83,12 @@
       if (typeof mermaid !== 'undefined') { mermaid.run(); }
     });
 
+    // Mobile nav toggle
     document.addEventListener('DOMContentLoaded', function() {
-      const toggle = document.querySelector('.nav-toggle');
-      const nav = document.querySelector('.site-nav');
+      var toggle = document.querySelector('.mk-nav-toggle');
+      var nav = document.querySelector('.mk-nav');
       if (toggle && nav) {
-        toggle.addEventListener('click', function() {
-          nav.classList.toggle('open');
-        });
+        toggle.addEventListener('click', function() { nav.classList.toggle('open'); });
       }
     });
   </script>

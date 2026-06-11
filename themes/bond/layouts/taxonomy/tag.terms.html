@@ -1,14 +1,17 @@
 {{ define "main" }}
-<div class="section-header">
-  <h2>All Tags</h2>
-  <p>Browse articles by topic</p>
-</div>
-<div class="tags-overview">
-  {{ range .Site.Taxonomies.tags.Alphabetical }}
-  <a href="{{ .Page.Permalink }}" class="tag-card">
-    <span class="tag-card-name">{{ .Page.Title }}</span>
-    <span class="tag-card-count">{{ .Count }}</span>
-  </a>
-  {{ end }}
-</div>
+<section class="mk-archive-hero">
+  <div class="mk-archive-rings"></div>
+  <div class="mk-wrap">
+    <div class="mk-kicker"><span class="mk-kicker-bar"></span>TAGS</div>
+    <h1 class="mk-archive-title">All tags</h1>
+    <p class="mk-archive-sub">Browse the field notes by topic.</p>
+  </div>
+</section>
+<section class="mk-wrap mk-section">
+  <div class="mk-chips mk-chips-tags mk-chips-lg">
+    {{ range .Site.Taxonomies.tags.ByCount }}
+    <a href="{{ .Page.Permalink }}" class="mk-chip mk-chip-tag">{{ .Page.Title }} <span class="mk-chip-count">{{ .Count }}</span></a>
+    {{ end }}
+  </div>
+</section>
 {{ end }}

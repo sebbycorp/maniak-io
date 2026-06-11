@@ -1,53 +1,109 @@
 {{ define "main" }}
-<div class="section-header">
-  <h2>{{ .Title }}</h2>
-  {{ with .Description }}<p>{{ . }}</p>{{ end }}
-</div>
+{{ $pages := .Pages }}
+{{ $total := len $pages }}
 
-<div class="content-with-sidebar">
-  <div class="main-content">
-    <div class="comic-grid">
-      {{ range $i, $p := .Pages }}
-      <div class="article-card{{ if eq $i 0 }} card-featured{{ end }}{{ if and (gt $i 0) (lt $i 3) }} card-wide{{ end }}">
-        <a href="{{ $p.Permalink }}">
-          <div class="card-accent-bar"></div>
-          <div class="card-body">
-            <div class="meta">{{ $p.Date.Format "02 Jan 2006" }}</div>
-            <h3>{{ $p.Title }}</h3>
-            <div class="card-tags">
-              {{ range $p.Params.tags }}<span class="tag-pill tag-sm">{{ . }}</span>{{ end }}
-            </div>
-            <p class="summary">{{ $p.Summary | truncate 150 }}</p>
-            <span class="read-more">Read more</span>
-          </div>
-        </a>
-      </div>
+<section class="mk-archive-hero">
+  <div class="mk-archive-rings"></div>
+  <div class="mk-wrap">
+    <div class="mk-kicker"><span class="mk-kicker-bar"></span>ARCHIVE</div>
+    <h1 class="mk-archive-title">{{ .Title }}</h1>
+    <p class="mk-archive-sub">Showing <strong id="mk-shown">{{ $total }}</strong> of {{ $total }} field notes.</p>
+
+    <div class="mk-searchbar">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#9A9CA3" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg>
+      <input id="mk-search" type="text" placeholder="Search articles, tags, topics…" autocomplete="off">
+      <button id="mk-clear" class="mk-clear" hidden>Clear ✕</button>
+    </div>
+
+    <div class="mk-chips" id="mk-cats">
+      <button class="mk-chip active" data-cat="All">All <span class="mk-chip-count">{{ $total }}</span></button>
+      {{ range $name, $taxo := .Site.Taxonomies.categories }}
+      <button class="mk-chip" data-cat="{{ $taxo.Page.Title }}">{{ $taxo.Page.Title }} <span class="mk-chip-count">{{ $taxo.Count }}</span></button>
+      {{ end }}
+    </div>
+
+    <div class="mk-chips mk-chips-tags" id="mk-tags">
+      {{ range first 14 .Site.Taxonomies.tags.ByCount }}
+      <button class="mk-chip mk-chip-tag" data-tag="{{ lower .Page.Title }}">{{ .Page.Title }} <span class="mk-chip-count">{{ .Count }}</span></button>
       {{ end }}
     </div>
   </div>
+</section>
 
-  <aside class="sidebar">
-    {{ with .Site.Taxonomies.categories }}
-    <div class="sidebar-section">
-      <h3 class="sidebar-title">Categories</h3>
-      <div class="sidebar-items">
-        {{ range .Alphabetical }}
-        <a href="{{ .Page.Permalink }}" class="category-pill">{{ .Page.Title }} <span class="tag-count">{{ .Count }}</span></a>
-        {{ end }}
-      </div>
-    </div>
-    {{ end }}
+<section class="mk-wrap mk-section">
+  <div class="mk-grid" id="mk-results">
+    {{ range $pages }}{{ partial "article-card.html" . }}{{ end }}
+  </div>
+  <div class="mk-empty" id="mk-empty" hidden>
+    <div class="mk-empty-title">No articles match.</div>
+    <p class="mk-empty-sub">Try a different topic or clear your search.</p>
+    <button class="mk-btn mk-btn-red mk-empty-btn" id="mk-empty-clear">Clear filters</button>
+  </div>
+</section>
 
-    {{ with .Site.Taxonomies.tags }}
-    <div class="sidebar-section">
-      <h3 class="sidebar-title">Tags</h3>
-      <div class="sidebar-items">
-        {{ range .ByCount }}
-        <a href="{{ .Page.Permalink }}" class="tag-pill tag-sm">{{ .Page.Title }} <span class="tag-count">{{ .Count }}</span></a>
-        {{ end }}
-      </div>
-    </div>
-    {{ end }}
-  </aside>
-</div>
+<script>
+(function() {
+  var search = document.getElementById('mk-search');
+  var clearBtn = document.getElementById('mk-clear');
+  var emptyClear = document.getElementById('mk-empty-clear');
+  var cats = document.getElementById('mk-cats');
+  var tags = document.getElementById('mk-tags');
+  var cards = Array.prototype.slice.call(document.querySelectorAll('#mk-results .mk-card'));
+  var shown = document.getElementById('mk-shown');
+  var empty = document.getElementById('mk-empty');
+  if (!cards.length) return;
+
+  var state = { q: '', cat: 'All', tag: null };
+
+  function apply() {
+    var q = state.q.trim().toLowerCase();
+    var n = 0;
+    cards.forEach(function(card) {
+      var okCat = state.cat === 'All' || card.dataset.cat === state.cat;
+      var okTag = !state.tag || (card.dataset.tags || '').split(',').indexOf(state.tag) !== -1;
+      var okQ = !q || (card.dataset.search || '').indexOf(q) !== -1;
+      var visible = okCat && okTag && okQ;
+      card.style.display = visible ? '' : 'none';
+      if (visible) n++;
+    });
+    if (shown) shown.textContent = n;
+    if (empty) empty.hidden = n !== 0;
+    var active = state.q.trim() !== '' || state.cat !== 'All' || state.tag !== null;
+    if (clearBtn) clearBtn.hidden = !active;
+  }
+
+  search.addEventListener('input', function() { state.q = search.value; apply(); });
+
+  cats.addEventListener('click', function(e) {
+    var btn = e.target.closest('.mk-chip'); if (!btn) return;
+    var c = btn.dataset.cat;
+    state.cat = (state.cat === c && c !== 'All') ? 'All' : c;
+    cats.querySelectorAll('.mk-chip').forEach(function(b) {
+      b.classList.toggle('active', b.dataset.cat === state.cat);
+    });
+    apply();
+  });
+
+  if (tags) tags.addEventListener('click', function(e) {
+    var btn = e.target.closest('.mk-chip'); if (!btn) return;
+    var t = btn.dataset.tag;
+    state.tag = state.tag === t ? null : t;
+    tags.querySelectorAll('.mk-chip').forEach(function(b) {
+      b.classList.toggle('active', b.dataset.tag === state.tag);
+    });
+    apply();
+  });
+
+  function reset() {
+    state = { q: '', cat: 'All', tag: null };
+    search.value = '';
+    cats.querySelectorAll('.mk-chip').forEach(function(b) { b.classList.toggle('active', b.dataset.cat === 'All'); });
+    if (tags) tags.querySelectorAll('.mk-chip').forEach(function(b) { b.classList.remove('active'); });
+    apply();
+    search.focus();
+  }
+  if (clearBtn) clearBtn.addEventListener('click', reset);
+  if (emptyClear) emptyClear.addEventListener('click', reset);
+})();
+</script>
 {{ end }}

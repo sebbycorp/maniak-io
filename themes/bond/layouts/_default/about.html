@@ -1,16 +1,19 @@
 {{ define "main" }}
-<section class="about-page">
-  <div class="about-hero">
-    <div class="about-photo">
+<section class="mk-about-hero">
+  <div class="mk-archive-rings"></div>
+  <div class="mk-wrap mk-about-hero-inner">
+    <div class="mk-about-photo">
       <img src="https://avatars.githubusercontent.com/u/1268277?v=4" alt="{{ .Site.Params.author }}">
     </div>
-    <div class="about-intro">
-      <h1>{{ .Site.Params.author }}</h1>
-      <div class="divider"></div>
-      <p class="about-tagline">{{ .Description }}</p>
+    <div class="mk-about-intro">
+      <div class="mk-kicker"><span class="mk-kicker-bar"></span>ABOUT</div>
+      <h1 class="mk-archive-title">{{ .Site.Params.author }}</h1>
+      <p class="mk-about-tagline">{{ with .Description }}{{ . }}{{ else }}{{ .Site.Params.description }}{{ end }}</p>
     </div>
   </div>
-  <div class="about-content">
+</section>
+<section class="mk-wrap mk-section">
+  <div class="mk-prose mk-about-content">
     {{ .Content }}
   </div>
 </section>
