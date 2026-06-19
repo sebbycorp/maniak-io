@@ -1,14 +1,27 @@
-# Deploying Agent Gateway + Everything MCP Server on Proxmox LXC
+---
+title: "Running agentgateway + Everything MCP Server on Proxmox (LXC)"
+date: 2026-06-18
+draft: false
+tags: ["agentgateway", "mcp", "proxmox", "talos", "kubernetes", "llm"]
+---
 
-This guide walks through deploying **Agent Gateway** (v1.3.0) with the official **Everything MCP server** inside a Proxmox LXC container.
+# Running agentgateway + Everything MCP Server on Proxmox (LXC)
+
+**Date:** June 2026  
+**Author:** Sebastian Maniak  
+**Tags:** agentgateway, mcp, proxmox, talos, kubernetes, llm
+
+## Overview
+
+This guide walks through deploying **agentgateway** (v1.3.0) inside a Proxmox LXC container with the official "Everything" MCP server connected behind it. The setup includes request logging, cost tracking, and a working UI.
 
 ## Prerequisites
 
-- Proxmox VE host
-- Access to the `172.16.10.x` network
-- Docker Hub access (or equivalent)
+- Proxmox VE 8.x
+- Access to a bridge (`vmbr0`) with DHCP on the `172.16.10.x` network
+- Docker Hub access or local registry
 
-## Step 1: Create LXC Container
+## Step 1: Create the LXC Container
 
 ```bash
 # Download Alpine template
@@ -28,7 +41,11 @@ pct create 210 /var/lib/vz/template/cache/alpine-3.20-default_20240908_amd64.tar
 pct start 210
 ```
 
-## Step 2: Install Docker inside the LXC
+You should now see the container in the Proxmox UI:
+
+![Proxmox LXC Container 210 (agentgateway)](/images/agentgateway-lxc-proxmox.png)
+
+## Step 2: Install Docker Inside the LXC
 
 ```bash
 pct exec 210 -- apk update
@@ -43,7 +60,7 @@ pct exec 210 -- service docker start
 pct exec 210 -- docker run -d \
   --name mcp-everything \
   --restart unless-stopped \
-  modelcontextprotocol/servers:2025.8.18 everything
+  modelcontextprotocol/servers:latest everything
 ```
 
 ## Step 4: Create Agent Gateway Configuration
@@ -62,7 +79,7 @@ llm:
       provider: openai
       params:
         model: gpt-4.1-mini
-        apiKey: "YOUR_OPENAI_API_KEY"
+        apiKey: "sk-..."
   policies:
     cors:
       allowOrigins:
@@ -108,8 +125,6 @@ frontendPolicies:
 
 ```bash
 pct exec 210 -- mkdir -p /config/data
-pct exec 210 -- chmod 777 /config/data
-
 pct exec 210 -- docker run -d \
   --name agentgateway \
   --restart unless-stopped \
@@ -122,25 +137,28 @@ pct exec 210 -- docker run -d \
   -f /config/config.yaml
 ```
 
-## Step 6: Access the Services
+## Step 6: Verify Everything Works
 
-After deployment, access the services at:
+Access the UI:
 
-- **Admin UI**: `http://172.16.10.164:15000/ui`
-- **LLM Proxy**: `http://172.16.10.164:4000`
-- **MCP Server**: `http://172.16.10.164:3000`
+```
+http://172.16.10.164:15000/ui
+```
 
-## Key Configuration Notes
+You should see:
 
-- Database must be placed under `config.database`
-- MCP targets use `stdio` transport with `docker exec`
-- Admin port must be bound to `0.0.0.0` using the `ADMIN_ADDR` environment variable
-- Request logging requires a writable SQLite database with correct ownership
+- LLM proxy on port 4000
+- MCP server (Everything) on port 3000
+- Admin UI on port 15000
+- Logs and Analytics working (no database errors)
 
-## Verification
+## Final Notes
 
-Check that Logs and Analytics work in the UI without database errors, and that the Everything MCP server appears as a connected target.
+- The container IP is `172.16.10.164` (DHCP)
+- All important ports are exposed on `0.0.0.0`
+- The Everything MCP server is connected via Docker exec stdio
 
----
+This setup gives you a production-ready Agent Gateway with full MCP support behind it on Proxmox.
+Here's what the working UI looks like:
 
-*Deployed on Proxmox LXC 210 (172.16.10.164) - June 2026*
+![Agent Gateway UI - Everything Working](/images/agentgateway-ui-working.png)
