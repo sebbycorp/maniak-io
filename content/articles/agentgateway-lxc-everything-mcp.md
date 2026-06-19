@@ -1,11 +1,11 @@
 ---
-title: "Running agentgateway + Everything MCP Server on Proxmox (LXC)"
+title: "Running agentgateway on Proxmox (LXC) guide"
 date: 2026-06-18
 draft: false
 tags: ["agentgateway", "mcp", "proxmox", "talos", "kubernetes", "llm"]
 ---
 
-# Running agentgateway + Everything MCP Server on Proxmox (LXC)
+# Running agentgateway on Proxmox (LXC) guide
 
 **Date:** June 2026  
 **Author:** Sebastian Maniak  
