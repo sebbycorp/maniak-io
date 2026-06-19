@@ -1,0 +1,19 @@
+{
+  "models": [
+    {
+      "model": "gpt-4.1-mini",
+      "input": 0.00015,
+      "output": 0.0006
+    },
+    {
+      "model": "gpt-4o",
+      "input": 0.005,
+      "output": 0.015
+    },
+    {
+      "model": "claude-3-5-sonnet",
+      "input": 0.003,
+      "output": 0.015
+    }
+  ]
+}
