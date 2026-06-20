@@ -151,6 +151,12 @@ Every mode answered the same five questions against the sandbox repo:
 
 ## Results
 
+Everything below is captured live on the **GitHub — MCP Tool Modes** Grafana dashboard the demo ships with. Here's the at-a-glance view after a 5-turn conversation per mode:
+
+![Grafana dashboard from the demo showing conversation cost after 5 turns (Code $0.1594, Search $0.1752, Standard $0.2333), conversation tokens (Code 49K, Search 47K, Standard 72K), cache-read tokens (Code 42K, Search 28K, Standard 55K), a panel explaining that GitHub's large ~4,781-token catalog makes Search cheapest per call and beats Standard in conversation unlike the small-catalog F5 demo, and the list of the five questions asked against the sandbox repo.](/images/articles/2026-06-20-github-mcp-token-economics/grafana-dashboard.png)
+
+The numbers that follow break those panels down in detail.
+
 ### Single call — one question, fresh session
 
 | Question | Standard | Search | Code |
