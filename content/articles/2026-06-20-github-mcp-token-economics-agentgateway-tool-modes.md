@@ -34,16 +34,29 @@ agentgateway sits between the LLM and GitHub. There is **no MCP pod to build or 
 
 ```mermaid
 flowchart LR
-  H[Test harness<br/>gh_questions.py / gh_conversation.py] -->|/openai| GW
-  subgraph K8s [kind cluster]
-    GW[Enterprise agentgateway proxy]
+  H["Test harness — gh_questions.py / gh_conversation.py"]
+
+  subgraph kind cluster
+    GW["Enterprise agentgateway proxy"]
   end
-  GW -->|gpt-5.5| OAI[OpenAI API]
-  GW -->|/mcp/gh-std<br/>toolMode: Standard| EXT
-  GW -->|/mcp/gh-search<br/>toolMode: Search| EXT
-  GW -->|/mcp/gh-code<br/>toolMode: Code| EXT
-  EXT[GitHub remote MCP<br/>api.githubcopilot.com/mcp/readonly] --> GH[(sandbox repo<br/>agw-tokenomics-sandbox)]
-  GW -.->|token + cost metrics| PG[Prometheus Pushgateway → Grafana]
+
+  OAI["OpenAI — gpt-5.5"]
+  EXT["GitHub remote MCP — /mcp/readonly"]
+  GH[("Sandbox repo — agw-tokenomics-sandbox")]
+  OBS["Prometheus Pushgateway → Grafana"]
+
+  H -->|"/openai route"| GW
+  GW -->|"chat completions"| OAI
+  GW -->|"/mcp/gh-std · Standard"| EXT
+  GW -->|"/mcp/gh-search · Search"| EXT
+  GW -->|"/mcp/gh-code · Code"| EXT
+  EXT -->|"read-only, PAT injected"| GH
+  GW -.->|"token + cost metrics"| OBS
+
+  classDef proxy fill:#E5341F,stroke:#B82817,color:#FFFFFF,stroke-width:2px;
+  classDef ext fill:#FAF8F3,stroke:#17181C,color:#17181C,stroke-width:1px;
+  class GW proxy;
+  class H,OAI,EXT,GH,OBS ext;
 ```
 
 ## The three tool modes
