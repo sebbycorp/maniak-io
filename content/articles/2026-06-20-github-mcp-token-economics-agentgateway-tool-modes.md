@@ -32,32 +32,7 @@ A key safety property: every question is pinned to a single repo, the gateway on
 
 agentgateway sits between the LLM and GitHub. There is **no MCP pod to build or run** — GitHub's MCP server is external and remote. The gateway targets it over TLS and injects your PAT. The same gateway also fronts the OpenAI-compatible model route, so one proxy sees both sides of the conversation and can meter tokens.
 
-```mermaid
-flowchart LR
-  H["Test harness — gh_questions.py / gh_conversation.py"]
-
-  subgraph kind cluster
-    GW["Enterprise agentgateway proxy"]
-  end
-
-  OAI["OpenAI — gpt-5.5"]
-  EXT["GitHub remote MCP — /mcp/readonly"]
-  GH[("Sandbox repo — agw-tokenomics-sandbox")]
-  OBS["Prometheus Pushgateway → Grafana"]
-
-  H -->|"/openai route"| GW
-  GW -->|"chat completions"| OAI
-  GW -->|"/mcp/gh-std · Standard"| EXT
-  GW -->|"/mcp/gh-search · Search"| EXT
-  GW -->|"/mcp/gh-code · Code"| EXT
-  EXT -->|"read-only, PAT injected"| GH
-  GW -.->|"token + cost metrics"| OBS
-
-  classDef proxy fill:#E5341F,stroke:#B82817,color:#FFFFFF,stroke-width:2px;
-  classDef ext fill:#FAF8F3,stroke:#17181C,color:#17181C,stroke-width:1px;
-  class GW proxy;
-  class H,OAI,EXT,GH,OBS ext;
-```
+![Architecture: the test harness sends /openai and /mcp/gh-* requests to the agentgateway proxy running in a kind cluster. The gateway routes /openai to OpenAI gpt-5.5 and three GitHub MCP backends (Standard, Search, Code) to GitHub's remote MCP server, injecting the PAT as a Bearer token and pinning scope to the read-only sandbox repo. A table shows per-call tool context: Standard 28 tools / 4,781 tokens, Search 2 tools / 429 tokens (−91%), Code 1 tool / 3,021 tokens (−37%).](/images/articles/2026-06-20-github-mcp-token-economics/architecture.svg)
 
 ## The three tool modes
 
