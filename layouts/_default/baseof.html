@@ -10,6 +10,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ "css/style.css" | relURL }}">
   <link rel="stylesheet" href="{{ "css/syntax.css" | relURL }}">
+  <style>
+    .mk-prose a.mk-zoom { display: block; cursor: zoom-in; }
+    .mk-prose a.mk-zoom img { display: block; }
+    .mk-lightbox { position: fixed; inset: 0; background: rgba(13,17,23,0.92); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 24px; cursor: zoom-out; }
+    .mk-lightbox.open { display: flex; }
+    .mk-lightbox img { max-width: 96vw; max-height: 92vh; width: auto; height: auto; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+    .mk-lightbox-close { position: absolute; top: 18px; right: 24px; background: none; border: none; color: #fff; font-size: 40px; line-height: 1; cursor: pointer; opacity: 0.85; }
+    .mk-lightbox-close:hover { opacity: 1; }
+  </style>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
   <script>
     (function() {
@@ -90,6 +99,41 @@
       if (toggle && nav) {
         toggle.addEventListener('click', function() { nav.classList.toggle('open'); });
       }
+    });
+
+    // Click / press-to-zoom lightbox for article images
+    document.addEventListener('DOMContentLoaded', function() {
+      var overlay = document.createElement('div');
+      overlay.className = 'mk-lightbox';
+      overlay.setAttribute('role', 'dialog');
+      overlay.setAttribute('aria-label', 'Zoomed image');
+      overlay.innerHTML = '<button class="mk-lightbox-close" aria-label="Close">&times;</button><img alt="">';
+      document.body.appendChild(overlay);
+      var lbImg = overlay.querySelector('img');
+
+      function open(src, alt) {
+        lbImg.src = src; lbImg.alt = alt || '';
+        overlay.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+      function close() {
+        overlay.classList.remove('open');
+        document.body.style.overflow = '';
+        lbImg.src = '';
+      }
+
+      document.querySelectorAll('.mk-prose a.mk-zoom').forEach(function(a) {
+        a.addEventListener('click', function(e) {
+          e.preventDefault();
+          var img = a.querySelector('img');
+          open(a.getAttribute('href'), img ? img.alt : '');
+        });
+      });
+
+      overlay.addEventListener('click', close);
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && overlay.classList.contains('open')) close();
+      });
     });
   </script>
 </body>

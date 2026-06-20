@@ -1,0 +1,3 @@
+<a class="mk-zoom" href="{{ .Destination | safeURL }}"{{ with .Title }} title="{{ . }}"{{ end }} aria-label="Open full-size image">
+  <img src="{{ .Destination | safeURL }}" alt="{{ .Text }}" loading="lazy">
+</a>
