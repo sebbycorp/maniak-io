@@ -59,7 +59,10 @@
         nodeTextColor: '#17181C'
       };
       mermaid.initialize({
-        startOnLoad: true,
+        // startOnLoad off: rendering is triggered after webfonts load (see
+        // bottom script), otherwise text is measured with fallback font
+        // metrics and gets clipped at node edges once DM Sans applies.
+        startOnLoad: false,
         theme: 'base',
         themeVariables: mkVars,
         securityLevel: 'loose',
@@ -89,7 +92,14 @@
         div.textContent = el.textContent;
         pre.parentElement.replaceChild(div, pre);
       });
-      if (typeof mermaid !== 'undefined') { mermaid.run(); }
+      if (typeof mermaid !== 'undefined') {
+        var runMermaid = function() { mermaid.run(); };
+        if (document.fonts && document.fonts.ready) {
+          document.fonts.ready.then(runMermaid, runMermaid);
+        } else {
+          runMermaid();
+        }
+      }
     });
 
     // Mobile nav toggle
