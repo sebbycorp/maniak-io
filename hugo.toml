@@ -6,7 +6,7 @@ theme = "bond"
 [params]
   description = "Technology. Strategy. Intelligence."
   author = "Sebastian Maniak"
-  youtubeChannel = "https://www.youtube.com/@professorseb"
+  youtubeChannel = "https://www.youtube.com/@sebbycorp"
   twitterHandle = "sebbycorp"
   linkedinURL = "https://www.linkedin.com/in/maniakseb"
 

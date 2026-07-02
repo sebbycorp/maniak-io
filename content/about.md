@@ -28,7 +28,7 @@ I build, secure, and automate infrastructure. My work spans F5, Fortinet, Palo A
 
 ## Connect
 
-- [YouTube](https://www.youtube.com/@professorseb)
+- [YouTube](https://www.youtube.com/@sebbycorp)
 - [X / Twitter](https://x.com/sebbycorp)
 - [LinkedIn](https://www.linkedin.com/in/maniakseb)
 - [GitHub](https://github.com/ProfessorSeb)
