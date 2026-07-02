@@ -11,14 +11,14 @@ approximating it with token-based rate limiting — workable, but request-window
 based, tokens-only, and fiddly to reason about. The new release replaces that
 with a first-class Kubernetes resource: `EnterpriseAgentgatewayBudget`, a
 declarative spending limit in **US dollars or tokens**, accumulated over a
-**calendar window** (day, week, month, year), with a choice of **audit** or
+**rolling window** (day, week, month, year), with a choice of **audit** or
 **block** when the budget runs dry.
 
 This post is a day-one field report. The docs for the feature are still
 catching up with the release (only the API reference covers it as I write
 this), so everything below was derived from the live CRD schemas on my cluster
 and verified with real traffic — including tripping a budget on purpose and
-watching the gateway return `429` with the daily window in the reset header.
+watching the gateway return `429` with the window in the reset header.
 
 ## Why budgets, not rate limits
 
@@ -29,12 +29,16 @@ difference shows up in three places:
 * **Unit.** A budget is denominated in `USD` or `Tokens`. USD budgets use a
   *model cost catalog* (per-model input/output rates) so the gateway computes
   the realized cost of every request as it happens.
-* **Window.** Budgets accumulate over fixed calendar windows — `Day`, `Week`,
-  `Month`, `Year` — not sliding rate-limit intervals.
+* **Window.** Budgets accumulate over **rolling windows** — `Day`, `Week`,
+  `Month`, `Year`. Under the hood, enforcement rides the gateway's rate
+  limiting infrastructure, so spend ages out continuously rather than
+  resetting at a calendar boundary: a `Day` budget looks at the trailing 24
+  hours, not "since midnight."
 * **Action.** `onBudgetExceeded: Audit` logs and lets traffic through (perfect
-  for rollout); `Block` returns `429` until the window resets. You can run
-  both at once: a generous audited dollar budget for visibility, plus a hard
-  token stop as a circuit breaker.
+  for rollout); `Block` returns `429` until enough spend rolls off the window
+  to bring you back under the limit. You can run both at once: a generous
+  audited dollar budget for visibility, plus a hard token stop as a circuit
+  breaker.
 
 ## The moving parts
 
@@ -65,7 +69,7 @@ already fronts OpenAI at `/openai`.
 
 One design note worth stealing: my `/openai` route is also the default model
 path for kagent agents in the same cluster. A blocking budget that trips would
-cut those agents off for the rest of the day. So the demo gets a **dedicated
+cut those agents off for up to 24 hours. So the demo gets a **dedicated
 route** — same backend, different path — and the budget policy targets only
 that route. Blast radius: zero.
 
@@ -268,8 +272,8 @@ x-ratelimit-reset: 86400
 rate limit exceeded
 ```
 
-`x-ratelimit-reset: 86400` — the fixed daily window. Clients get exactly what
-they need to back off intelligently.
+`x-ratelimit-reset: 86400` — the 24-hour rolling window. Clients get exactly
+what they need to back off intelligently.
 
 Meanwhile the production `/openai` route (which kagent's agents use) kept
 returning `200` throughout — the budget is scoped to the demo route and
@@ -308,22 +312,47 @@ audit first, watch the logs for a week, then flip to `Block`.
 ## Dimensions: scoping budgets to teams and users
 
 The demo entries above are unscoped — they apply to every request on the
-enforced route. The `subject` field is where multi-tenancy comes in:
+enforced route. The `subject` field is where multi-tenancy comes in. Take the
+classic real-world split: engineering runs agents and evals all day and gets a
+$500/month allocation; product does lighter prototyping on $200/month; and a
+catch-all audit entry watches everything else:
 
 ```yaml
-    - name: dev-team-daily
+spec:
+  budgets:
+    - name: eng-monthly
       subject:
-        teamId: dev          # up to 16 key/value dimensions per entry
+        group: engineering   # up to 16 key/value dimensions per entry
       limit:
         unit: USD
-        amount: 50
+        amount: 500
       window:
-        unit: Day
+        unit: Month
       onBudgetExceeded: Block
+    - name: product-monthly
+      subject:
+        group: product
+      limit:
+        unit: USD
+        amount: 200
+      window:
+        unit: Month
+      onBudgetExceeded: Block
+    - name: everyone-else
+      subject:
+        group: "*"           # any request that carries a group dimension
+      limit:
+        unit: USD
+        amount: 100
+      window:
+        unit: Month
+      onBudgetExceeded: Audit
 ```
 
-A subject scopes the entry to requests whose resolved dimension values match
-every key/value pair (a value of `"*"` means "any non-missing value"). Combined
+Engineering blowing through its allocation on a runaway eval loop gets 429s;
+product keeps shipping, unaffected — same gateway, same route, different
+wallets. A subject scopes the entry to requests whose resolved dimension values
+match every key/value pair (a value of `"*"` means "any non-missing value"). Combined
 with the discovery modes on the enforcement policy (`Same` / `Selector` /
 `All`), the intended shape is clear: platform team owns the enforcement policy
 on the gateway; each product team owns Budget resources in their own
@@ -348,10 +377,12 @@ For unscoped budgets like this demo, none of that matters — they just work.
   hot reload.
 * **Budgets count input + output tokens.** Size token budgets against
   `total_tokens`, not your prompt sizes.
-* **A tripped daily `Block` budget stays tripped until the window resets.**
-  That's the point — but it's also why you should never put a small blocking
-  budget on a route that shared infrastructure (agents, CI) depends on.
-  Dedicated routes or subject-scoped entries are your friends.
+* **Windows are rolling, not calendar-aligned.** Budget enforcement rides the
+  gateway's rate limiting infrastructure, so a tripped `Day` budget stays
+  blocked until enough spend ages out of the trailing 24 hours — it does not
+  reset at midnight. Either way, never put a small blocking budget on a route
+  that shared infrastructure (agents, CI) depends on. Dedicated routes or
+  subject-scoped entries are your friends.
 * **v2026.6.x is not a long-term-support train.** AgentGateway moved to calver
   with this cycle; quarterly releases (first expected: 2026.7.x) get 12 months
   of patches. Fine for a lab, plan accordingly for production.
