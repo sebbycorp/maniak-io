@@ -58,6 +58,18 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
+      # A deploy-pages timeout during a Pages incident can leave the previous
+      # deployment stuck "in progress" server-side, blocking all new deploys
+      # ("Please cancel <sha> first"). Best-effort cancel of recent ones.
+      - name: Cancel any stuck Pages deployment
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for sha in $(gh api "repos/$GITHUB_REPOSITORY/deployments?environment=github-pages&per_page=5" --jq '.[].sha'); do
+            gh api -X POST "repos/$GITHUB_REPOSITORY/pages/deployments/$sha/cancel" >/dev/null 2>&1 \
+              && echo "canceled stuck deployment $sha" || true
+          done
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
