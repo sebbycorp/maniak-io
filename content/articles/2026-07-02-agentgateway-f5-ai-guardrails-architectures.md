@@ -59,6 +59,64 @@ is a composition of them:
   an outcome plus `redactedInput`. Nothing gets forwarded; *you* stay in charge
   of calling the model.
 
+## Why the gateway layer is non-negotiable
+
+Before the architectures, it's worth being blunt about why agentgateway is in
+every one of these diagrams — because "can't the apps just call Guardrails
+directly?" is the first question you'll get in an architecture review. They
+can (that's Lab 3 of the F5 workshop), and it doesn't scale. Every other
+layer in the stack assumes someone else is governing AI traffic: the XC edge
+governs HTTP and doesn't know what a token, a model, or a tool call is;
+Guardrails judges *content* and doesn't route, failover, meter, or
+authenticate your apps. Without a gateway, your "AI platform" is a pile of
+SDK calls nobody owns.
+
+What the gateway layer uniquely provides:
+
+1. **One front door instead of N×M integrations.** Ten apps on three
+   providers is thirty credential sets and thirty places to touch every time
+   a model deprecates. Behind one OpenAI-compatible endpoint, providers and
+   models change without a single app redeploy.
+2. **Provider keys leave the apps.** Apps authenticate to *you* (JWT, API
+   key, OAuth); OpenAI/Anthropic credentials exist in exactly one place.
+   Revoking a team's access takes seconds and doesn't rotate a provider key
+   across the fleet.
+3. **Spend control that actually blocks.** Provider dashboards report last
+   month; gateway budgets are enforced live — dollar- or token-denominated,
+   per team or app, returning `429` when the money runs out. The edge can
+   rate-limit requests, but a request can cost $0.001 or $5; only the layer
+   that parses usage can meter dollars.
+4. **Failover and model agility.** Provider outages and deprecations are
+   *when*, not *if*. Automatic cross-provider failover and model aliasing
+   turn every provider incident from an all-hands app change into a config
+   edit.
+5. **MCP and A2A governance.** Agents call tools, and ungoverned MCP servers
+   are the new shadow IT — every tool an agent can reach is an exfiltration
+   path. agentgateway federates MCP servers behind auth and RBAC; neither
+   the edge nor Guardrails addresses this at all.
+6. **Observability where the semantics live.** OTel traces with tokens,
+   cost, model, and latency per request. The edge sees bytes; the guardrail
+   sees verdicts; only the gateway sees the whole conversation.
+7. **It's the socket the guardrail plugs into.** Without a gateway, adopting
+   Guardrails means every app team writes scan-then-forward code. With one,
+   guardrails become a *policy* — one webhook config, zero app changes
+   (that's Option C below).
+
+And the honest trade-offs: it's another hop (single-digit milliseconds —
+noise next to seconds of LLM inference) and another component to operate; if
+it's down, AI traffic is down (it's a stateless Rust proxy built to run as
+HA replicas); the budget/webhook/UI features are in the enterprise tier. The
+counterargument to all three is the same: without the gateway you end up
+building ad-hoc versions of half these features anyway — badly, in every
+app, with no one accountable.
+
+You wouldn't run web apps without a load balancer or APIs without an API
+gateway. Running LLMs and agents without an AI gateway is the same mistake,
+except the blast radius is your provider bill, your credentials, and every
+tool your agents can touch. The edge protects you from the internet;
+Guardrails protects you from the content; **the gateway is what makes AI
+traffic governable at all.**
+
 ## Option A — agentgateway in front of Guardrails
 
 The zero-code option. Guardrails' inline endpoint is OpenAI-compatible, so
