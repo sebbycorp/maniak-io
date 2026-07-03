@@ -75,6 +75,5 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v5
         with:
-          # GitHub Pages backend can be slow during degraded-performance
-          # incidents; 30 min instead of the 10 min default.
-          timeout: 1800000
+          # actions/deploy-pages caps this at 10 minutes.
+          timeout: 600000
