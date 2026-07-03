@@ -66,10 +66,20 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          for sha in $(gh api "repos/$GITHUB_REPOSITORY/deployments?environment=github-pages&per_page=5" --jq '.[].sha' | sort -u); do
+          gh api "repos/$GITHUB_REPOSITORY/deployments?environment=github-pages&per_page=10" \
+            --jq '.[] | [.sha, .statuses_url] | @tsv' |
+          while IFS=$'\t' read -r sha statuses_url; do
             [ "$sha" = "$GITHUB_SHA" ] && continue  # never cancel our own deployment
-            gh api -X POST "repos/$GITHUB_REPOSITORY/pages/deployments/$sha/cancel" >/dev/null 2>&1 \
-              && echo "canceled stuck deployment $sha" || true
+            state="$(gh api "$statuses_url" --jq '.[0].state // empty' 2>/dev/null || true)"
+            case "$state" in
+              queued|waiting|in_progress|pending)
+                gh api -X POST "repos/$GITHUB_REPOSITORY/pages/deployments/$sha/cancel" >/dev/null 2>&1 \
+                  && echo "canceled stuck deployment $sha ($state)" || true
+                ;;
+              *)
+                echo "skipping deployment $sha ($state)"
+                ;;
+            esac
           done
       - name: Deploy to GitHub Pages
         id: deployment
