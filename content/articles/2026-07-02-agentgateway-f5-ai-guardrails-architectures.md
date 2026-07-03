@@ -408,6 +408,27 @@ PASS Option C response-phase scan completed: HTTP 200
 PASS Option C response-phase scanner masked blocked output
 ```
 
+The same run shows up in F5 AI Guardrails under **Logs → Prompt history**:
+
+![F5 AI Guardrails prompt history showing blocked project-titan scans and redacted SSN scans from the agentgateway test run](/images/articles/2026-07-02-agentgateway-f5-ai-guardrails-architectures/f5-logs-test-output.png)
+
+Those rows are the audit trail that matters in a real rollout:
+
+- **Blocked / Scan / `project-titan`** — Option C's request webhook called
+  ScanAPI before the model request and F5 returned a blocking verdict.
+- **Redacted / Scan / `Repeat back exactly: my ssn is ***********`** — the
+  regex scanner caught the SSN pattern and returned redacted content instead of
+  the raw value.
+- **Blocked / Prompt / Genai Azure Openai** — Option A hit the F5 inline
+  OpenAI-compatible provider, so F5 logged the proxied prompt path as well as
+  the scan decision.
+
+This is the operational difference between "the gateway returned the right
+status code" and "security has evidence." The terminal output proves
+agentgateway enforced the policy; the Guardrails logs prove the scanner
+decision, user, provider path, interaction text, and timestamp were recorded in
+the F5 audit plane.
+
 There is also a fuller harness in `run_harness.sh` that reads
 `harness/cases.yaml`, records latency/status/usage metadata, and writes
 `harness/results.jsonl`. Use `test.sh` when you want a quick operational
