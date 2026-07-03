@@ -385,6 +385,10 @@ The important design choice is that Option C tests both directions. Request
 scanning catches unsafe user input before the model sees it; response scanning
 catches unsafe model output before the client sees it.
 
+This is the traffic flow the tests exercise:
+
+![Animated traffic flow for test.sh showing Option A inline F5 Guardrails traffic and Option C out-of-band ScanAPI traffic through agentgateway webhooks](/images/articles/2026-07-02-agentgateway-f5-ai-guardrails-architectures/agw-f5-traffic-flow.gif)
+
 Run it after deployment:
 
 ```bash
