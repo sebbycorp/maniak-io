@@ -348,9 +348,76 @@ My recommendation: **prove Option A in an afternoon** (it's configuration
 only), then **build Option C for production**. Option B is the niche play for
 orgs whose security team must terminate the client connection.
 
+## Runnable lab and test results
+
+I put the working kind lab here:
+
+👉 **[github.com/ProfessorSeb/agentgateway-demos/tree/main/202-agw-f5-ai](https://github.com/ProfessorSeb/agentgateway-demos/tree/main/202-agw-f5-ai)**
+
+The lab deploys both recommended paths:
+
+- `/option-a` routes from agentgateway to the F5 AI Guardrails
+  OpenAI-compatible inline endpoint.
+- `/option-c` routes from agentgateway directly to OpenAI, with F5 ScanAPI
+  called out-of-band from request and response `promptGuard` webhooks.
+
+The setup script creates two intentionally simple custom scanners in F5 AI
+Guardrails:
+
+| Scanner | Type | Match | Direction | Mode |
+|---|---|---|---|---|
+| `agw-lab-keyword-codename` | Keyword | `project-titan` | Prompts and responses | Block |
+| `agw-lab-regex-ssn` | Regex | `\d{3}-\d{2}-\d{4}` | Prompts | Redact |
+
+That gives the test suite something concrete to prove. The smoke test lives in
+`test.sh` and sends six OpenAI Chat Completions requests through the gateway:
+
+| Test | Route | Expected result | What it proves |
+|---|---|---|---|
+| Option A benign | `/option-a` | `200` | agentgateway can reach the F5 inline OpenAI-compatible endpoint |
+| Option C benign | `/option-c` | `200` | agentgateway can reach OpenAI directly while the webhook adapter passes clear prompts |
+| Option A blocked codename | `/option-a` | `400` or `403` | F5 inline scanning blocks the custom `project-titan` keyword |
+| Option C blocked codename | `/option-c` | `403` | the request webhook calls ScanAPI and rejects a blocked prompt |
+| Option C SSN redaction | `/option-c` | `200`, no raw SSN | ScanAPI returns `redactedInput`, and the adapter replaces the user message before forwarding |
+| Option C response-phase mask | `/option-c` | `200`, no blocked keyword | the response webhook scans the assistant output and masks blocked content |
+
+The important design choice is that Option C tests both directions. Request
+scanning catches unsafe user input before the model sees it; response scanning
+catches unsafe model output before the client sees it.
+
+Run it after deployment:
+
+```bash
+cd agentgateway-demos/202-agw-f5-ai
+./setup-guardrails.sh
+./deploy.sh
+kubectl port-forward -n agentgateway-system svc/agentgateway-proxy 8080:80
+./test.sh
+```
+
+The passing output from my run:
+
+```text
+PASS Option A benign: HTTP 200
+PASS Option C benign: HTTP 200
+PASS Option A blocked codename: HTTP 400
+PASS Option C blocked codename: HTTP 403
+PASS Option C SSN redaction request completed: HTTP 200
+PASS Option C redaction did not leak raw SSN
+PASS Option C response-phase scan completed: HTTP 200
+PASS Option C response-phase scanner masked blocked output
+```
+
+There is also a fuller harness in `run_harness.sh` that reads
+`harness/cases.yaml`, records latency/status/usage metadata, and writes
+`harness/results.jsonl`. Use `test.sh` when you want a quick operational
+answer; use the harness when you want repeatable evidence for a write-up,
+demo, or CI job.
+
 ## References
 
 - [F5 AI Guardrails API docs](https://docs.aisecurity.f5.com/) — [getting started with Defend](https://docs.aisecurity.f5.com/api-docs/getting-started-defend.html), [ScanAPI](https://docs.aisecurity.f5.com/operations/post_scans.html), [providers](https://docs.aisecurity.f5.com/operations/post_providers.html), [OpenAI-compatible endpoint](https://docs.aisecurity.f5.com/operations/post_openai_provider_chat_completions.html), [OpenAI SDK proxy integration](https://docs.aisecurity.f5.com/integrations/proxy.openai-sdk.html)
+- [Runnable Options A and C lab](https://github.com/ProfessorSeb/agentgateway-demos/tree/main/202-agw-f5-ai)
 - [F5 AI security API integration examples (GitHub)](https://github.com/f5devcentral/f5-ai-security-api-integration-examples)
 - [agentgateway docs](https://docs.solo.io/agentgateway/latest/) — [custom providers](https://docs.solo.io/agentgateway/latest/llm/providers/custom/), [webhook guardrails](https://docs.solo.io/agentgateway/latest/llm/guardrails/webhook/)
 - [F5 XC EMEA workshop, Class 6 Module 1](https://clouddocs.f5.com/training/community/f5xc-emea-workshop/html/class6/module1/module1.html) — Lab 2 (inline), Lab 3 (out-of-band)
