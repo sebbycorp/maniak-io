@@ -1,29 +1,18 @@
 ---
-title: "Cheap Flights: How the Right MCP Tool Mode Cut My Drone Agent's Bill ~40%"
+title: "GPT-5.5 vs Claude vs Grok: Which Model Saves Money? (I Made Them Fly a Drone)"
 date: 2026-07-06
-description: "I let AI agents fly a Ryze RoboMaster TT drone over MCP through Enterprise agentgateway, then measured the bill. Switching the tool mode from Standard to CodeSearch cut gpt-5.5's tokens ~46% and cost ~39% on a 28-tool catalog. I re-ran the identical flight on Claude and xAI and the savings changed — because the cheapest setup is a combination of tool mode AND model, not either alone. Real graphs, real agentgateway logs, and real kagent traces."
-tags: ["agentgateway", "kagent", "mcp", "tool-modes", "langfuse", "drone", "tokenomics", "cost"]
+description: "I flew the identical mission on a real Ryze RoboMaster TT drone with three models — gpt-5.5, claude-fable-5, and grok-4.3 — each swapped in with a one-line agentgateway ModelConfig, every token metered in Langfuse. The cost gap was 5×. Here's who saves money, why, and how the MCP tool mode changes the answer. Real graphs, real agentgateway logs, real kagent traces."
+tags: ["agentgateway", "kagent", "mcp", "llm-cost", "gpt-5.5", "claude", "grok", "langfuse", "tokenomics"]
 categories: ["AI Gateway"]
 ---
 
-I gave an AI agent a drone and a single instruction set — *take off, flip, photograph the room, spin, land* — and let it fly a real **Ryze RoboMaster TT** by calling a **28-tool MCP server** through [Enterprise agentgateway](https://agentgateway.dev). It works, it's delightful, and it costs money on every turn.
+Same job, three brains. I gave an AI agent a real **Ryze RoboMaster TT** drone and one fixed mission — *take off, flip, photograph the room, spin 360°, land and report* — then flew it **identically on three models**: `gpt-5.5`, `claude-fable-5`, and `grok-4.3`. Same agent, same drone, same 28-tool MCP server, same prompts. The only thing that changed was the model, swapped in with a **one-line [agentgateway](https://agentgateway.dev) ModelConfig**.
 
-This post is about that bill — and how I cut it by ~40% **without changing the agent, the drone, or the flight**. Just one config knob: the MCP **tool mode**. Then I swapped the model three ways and the answer moved again. Every number here is measured, not guessed — pulled straight from kagent's tracing and Langfuse.
+The bill for that identical flight ranged **5× from cheapest to dearest.** This post is about who saves money, why, and the one extra knob that moves the answer. Every number is measured — pulled from kagent's tracing and Langfuse, not estimated.
 
-Live flight deck for the whole rig: **[goose.maniak.ai](https://goose.maniak.ai)**.
+Live flight deck: **[goose.maniak.ai](https://goose.maniak.ai)**.
 
-## The tax nobody sees: your tool catalog
-
-Every time an LLM talks to an MCP server, the **tool catalog** — the JSON schema of every tool, its params, its description — gets injected into the prompt. For 28 drone tools that's a few thousand tokens of overhead **on every single turn**, before the model does one useful thing. That's the tax. The tool mode decides how you pay it.
-
-agentgateway can serve the same MCP server four ways. Two matter for a mid-sized catalog:
-
-- **Standard** — all 28 tools, full schemas, every turn. The model calls a tool directly; you re-send the whole catalog each time.
-- **CodeSearch** — the model gets two meta-tools: `get_tool` (fetch one tool's typed signature on demand) and `run_code` (write JavaScript that calls the tools in a sandbox). Tiny context, and you batch calls in code instead of round-tripping.
-
-Same drone, same 5-prompt flight, only the mode changes.
-
-## Standard vs CodeSearch (gpt-5.5): −46% tokens, −39% cost
+## The verdict: cost per flight
 
 <svg viewBox="0 0 720 320" role="img" aria-label="Cost per flight — Standard vs CodeSearch, three models" style="width:100%;height:auto">
 <text x="54" y="26" fill="#e4ecf7" font-family="ui-monospace,monospace" font-size="13" font-weight="700">Cost per flight — Standard vs CodeSearch, three models</text>
@@ -57,30 +46,37 @@ Same drone, same 5-prompt flight, only the mode changes.
 <text x="54" y="314" fill="#4c5c76" font-family="ui-monospace,monospace" font-size="9">cost per full flight (USD) · lower is better</text>
 </svg>
 
-| Mode | Model calls | Tokens | Latency | Cost | vs Standard |
-|---|--:|--:|--:|--:|--:|
-| **Standard** | 35 | 98.3k | 47s | $0.5252 | baseline |
-| **CodeSearch** | 21 | 53.1k | 37s | **$0.3201** | **−39%** |
+| Model | Mode | Tokens | Latency | Cost |
+|---|---|--:|--:|--:|
+| **grok-4.3** 🏆 | CodeSearch | 99.5k | 31s | **$0.3050** |
+| grok-4.3 | Standard | 113.0k | 25s | $0.3441 |
+| gpt-5.5 | CodeSearch | 53.1k | 37s | $0.3201 |
+| gpt-5.5 | Standard | 98.3k | 47s | $0.5252 |
+| claude-fable-5 | CodeSearch | 165.6k | 101s | $1.5167 |
+| claude-fable-5 | Standard | 159.5k | 79s | $1.6676 |
 
-For a 28-tool catalog, not shoving all 28 schemas into every turn is free money: **fewer calls, ~46% fewer tokens, ~39% lower cost — and it finished faster.**
+Three findings, in order of how much money they save you:
 
-### Where the money actually goes
+- **grok-4.3 is the cheapest *and* the fastest.** ~$0.30–0.34 a flight, done in ~25–31s. It's almost comically terse — asked to flip, it replied *"Forward flip completed."* — **4 output tokens.** Cheap talk, literally.
+- **gpt-5.5 is right behind on cost and the leanest on tokens** ($0.32–0.53, 53–98k tokens). It's the model that responds best to the tool-mode trick below.
+- **claude-fable-5 is the premium option** — the most thorough answers, but **~5× grok's cost and ~3× gpt-5.5's** for the exact same mission. Great model; you pay for it.
 
-One prompt dominates every run — the status report, because the agent polls `get_state` over and over to compose it:
+If the only thing you care about is the bill, **grok wins, gpt-5.5 is a close and leaner second, Claude is a deliberate splurge.**
 
-| # | Prompt | Standard (calls / tokens / $) | CodeSearch (calls / tokens / $) |
-|---|---|---|---|
-| 1 | Take off and hover | 3 / 7.4k / $0.0443 | 4 / 8.6k / $0.0490 |
-| 2 | Do a flip | 4 / 10.8k / $0.0583 | 4 / 9.2k / $0.0574 |
-| 3 | Take a photo and describe | 6 / 17.7k / $0.0938 | 3 / 7.2k / $0.0462 |
-| 4 | Spin 360° | 5 / 15.9k / $0.0832 | 5 / 12.7k / $0.0752 |
-| 5 | **Land + status report** | **17 / 45.1k / $0.2457** | 5 / 13.3k / $0.0922 |
+> Cost = tokens × each model's price. gpt-5.5 and Claude are priced by Langfuse; grok-4.3 I priced from [models.dev](https://models.dev) at the grok-4 rate ($3/M in, $15/M out).
 
-In Standard, that one prompt burns **17 calls and 45k tokens** — nearly half the flight. CodeSearch collapses it into a single `run_code` that reads state once and summarizes: **5 calls, 13k tokens**. That's most of the savings right there.
+## Why the gap is so wide
 
-## But does it hold on other models?
+It isn't just per-token price — it's **how much each model says**. Claude reasons out loud and writes verbose tool-discovery code, so it burns 160k+ tokens on a flight. grok is monosyllabic. gpt-5.5 sits in between but is disciplined. Two models can complete the identical mission and differ 5× on the bill purely from verbosity × price. You only see that if you meter it — which is the whole reason agentgateway sits in the middle.
 
-I re-ran the **identical** Standard and CodeSearch flights on Claude (`claude-fable-5`) and xAI (`grok-4.3`), each through its own agentgateway route. Nothing changed but the model:
+## The second lever: MCP tool mode
+
+There's a knob *within* each model. Every MCP call injects the **tool catalog** — the schema of all 28 tools — into the prompt. agentgateway can hide that behind two modes:
+
+- **Standard** — all 28 tools, full schemas, every turn.
+- **CodeSearch** — two meta-tools (`get_tool` to fetch one signature on demand, `run_code` to batch calls in a JS sandbox). Tiny context, fewer round-trips.
+
+Here's tokens per flight, both modes, all three models:
 
 <svg viewBox="0 0 720 320" role="img" aria-label="Tokens per flight — Standard vs CodeSearch, three models" style="width:100%;height:auto">
 <text x="54" y="26" fill="#e4ecf7" font-family="ui-monospace,monospace" font-size="13" font-weight="700">Tokens per flight — Standard vs CodeSearch, three models</text>
@@ -114,46 +110,45 @@ I re-ran the **identical** Standard and CodeSearch flights on Claude (`claude-fa
 <text x="54" y="314" fill="#4c5c76" font-family="ui-monospace,monospace" font-size="9">total tokens per flight (thousands) · lower is better</text>
 </svg>
 
-| Model | Mode | Calls | Tokens | Latency | Cost |
-|---|---|--:|--:|--:|--:|
-| **gpt-5.5** | Standard | 35 | 98.3k | 47s | $0.5252 |
-| **gpt-5.5** | CodeSearch | 21 | **53.1k** | 37s | $0.3201 |
-| **claude-fable-5** | Standard | 26 | 159.5k | 79s | $1.6676 |
-| **claude-fable-5** | CodeSearch | 33 | 165.6k | 101s | $1.5167 |
-| **grok-4.3** | Standard | 34 | 113.0k | 25s | $0.3441 |
-| **grok-4.3** | CodeSearch | 33 | 99.5k | 31s | **$0.3050** |
+The catch: **the tool mode that saves money is model-dependent.**
 
-> Cost = tokens × each model's price. gpt-5.5 and Claude are priced by Langfuse; grok-4.3 I priced from [models.dev](https://models.dev) at the grok-4 rate ($3/M in, $15/M out).
+- On **gpt-5.5**, CodeSearch cut tokens **~46%** and cost **~39%** ($0.5252 → $0.3201). Big win.
+- On **grok**, a modest trim (it's already terse).
+- On **Claude**, CodeSearch **did nothing** — its verbose `run_code`/discovery steps used *more* tokens than Standard. The saving was cancelled out.
 
-Three things fall out, and they're the whole point:
+So you can't pick a tool mode in the abstract. **Benchmark the mode with the model you'll actually ship.** For gpt-5.5, flip to CodeSearch. For Claude, don't bother — spend your savings on picking a cheaper model instead.
 
-- **CodeSearch is not universally a win.** It cut gpt-5.5's tokens ~46%, but on **Claude it did nothing** — Claude writes verbose discovery/`run_code` steps, so the smaller context is cancelled out by longer generations (its CodeSearch run actually used *more* tokens than Standard).
-- **The model is the bigger lever than the mode.** `claude-fable-5` is thorough but costs **~5× grok and ~3× gpt-5.5** for the same flight. If you're cost-sensitive, picking the model matters more than picking the mode.
-- **grok-4.3 is the sleeper** — cheapest run of the whole matrix ($0.3050) *and* fastest by a mile (~25–31s vs Claude's ~80–100s). It's almost comically terse: on "Do a flip" it replied *"Forward flip completed."* — **4 output tokens.**
+### Where gpt-5.5's savings come from
 
-**The cheapest setup is a combination:** the right tool mode *for that model*. Benchmark the pair you'll actually ship — don't pick either in the abstract.
+One prompt dominates — the status report, because the agent polls `get_state` repeatedly:
+
+| # | Prompt | Standard (calls / tokens) | CodeSearch (calls / tokens) |
+|---|---|---|---|
+| 5 | **Land + status report** | **17 / 45.1k** | 5 / 13.3k |
+
+Standard burns 17 calls and 45k tokens on that one turn; CodeSearch collapses it into a single `run_code` that reads state once — 5 calls, 13k tokens. That's most of the −39%.
 
 ## The receipts — kagent tracing
 
-None of this is estimated. kagent (Solo Enterprise for kagent) traces every flight — one trace per prompt, with input, output, duration, and token count — and exports the same spans to Langfuse. Here's the tracing list for a flight:
+None of this is estimated. kagent (Solo Enterprise for kagent) traces every flight — one trace per prompt, with input, output, duration, and tokens — and exports the same spans to Langfuse:
 
-![kagent Tracing list: drone_agent flight traces, each row a prompt (Take off and hover, Do a flip, Take a photo, Spin 360, Land + status report) with start time, duration ~0.7–2.4s, and ~2.8k–3.8k tokens per trace.](/images/articles/2026-07-06-drone-tool-modes/kagent-tracing-list.png)
+![kagent Tracing list: drone_agent flight traces, each a prompt (Take off, Do a flip, Take a photo, Spin 360, Land + status) with duration ~0.7–2.4s and ~2.8k–3.8k tokens per trace.](/images/articles/2026-07-06-drone-tool-modes/kagent-tracing-list.png)
 
-Drill into a single trace and you get the **execution flow** and the **trace tree** — every `call_llm`, every `execute_tool`. Here's CodeSearch on Claude discovering a tool with `get_tool`, then running `run_code` to take the photo:
+Drill into a trace and you see the execution flow and every tool call. CodeSearch on Claude — `get_tool` then `run_code` to take the photo:
 
-![kagent trace detail for drone_agent_cs_claude: Execution Flow shows the agent calling get_tool then run_code; Trace Tree shows call_llm → generate_content (claude-fable-5) → openai.chat → execute_tool get_tool/run_code; the output describes a bright indoor lab. 5,623 tokens for the turn.](/images/articles/2026-07-06-drone-tool-modes/kagent-trace-cs-claude.png)
+![kagent trace detail for drone_agent_cs_claude: Execution Flow shows get_tool then run_code; Trace Tree shows call_llm → generate_content (claude-fable-5) → openai.chat → execute_tool; 5,623 tokens for the turn.](/images/articles/2026-07-06-drone-tool-modes/kagent-trace-cs-claude.png)
 
-Standard mode on Claude, doing the 360° spin via the `celebrate` tool and reading `get_state`:
+Claude on Standard, doing the 360° via the `celebrate` tool and reading `get_state`:
 
-![kagent trace detail for drone_agent_claude: Execution Flow shows celebrate and get_state tools; output reports a full 360° spin, height 80cm, battery 75%; 6,997 tokens for the turn.](/images/articles/2026-07-06-drone-tool-modes/kagent-trace-claude.png)
+![kagent trace detail for drone_agent_claude: celebrate + get_state tools; output reports a full 360° spin, 80cm, battery 75%; 6,997 tokens.](/images/articles/2026-07-06-drone-tool-modes/kagent-trace-claude.png)
 
-And grok on CodeSearch — same `get_tool` + `run_code` shape, but notice how little it says (that terseness is why grok's token counts stay low):
+And grok on CodeSearch — same shape, but look how little it says (4 output tokens — that's why grok's bill is tiny):
 
-![kagent trace detail for drone_agent_cs_xai: Execution Flow shows get_tool and run_code on grok-4.3; the Do-a-flip turn returns just 'Forward flip completed' — 4 output tokens, 2,933 total.](/images/articles/2026-07-06-drone-tool-modes/kagent-trace-cs-xai.png)
+![kagent trace detail for drone_agent_cs_xai: get_tool + run_code on grok-4.3; the Do-a-flip turn returns just 'Forward flip completed' — 4 output tokens, 2,933 total.](/images/articles/2026-07-06-drone-tool-modes/kagent-trace-cs-xai.png)
 
-## The gateway sees every hop
+## The gateway sees — and prices — every hop
 
-agentgateway sits in the middle and tags each MCP request with its tool-mode route, the MCP method, status, and latency — which is exactly why the cost numbers exist. Straight from the proxy:
+agentgateway routes each MCP call to the right backend and tags it with the tool mode, method, status, and latency — which is exactly why the cost numbers exist:
 
 ```text
 info request gateway=virtual-mcp-gateway route=drone-mcp
@@ -161,37 +156,15 @@ info request gateway=virtual-mcp-gateway route=drone-mcp
   protocol=mcp mcp.method.name=tools/list duration=3ms
 info request gateway=virtual-mcp-gateway route=drone-mcp-codesearch
   http.method=POST http.path=/drone-codesearch http.status=200
-  protocol=mcp mcp.method.name=initialize duration=3ms
-info request gateway=virtual-mcp-gateway route=drone-mcp-codesearch
-  http.method=POST http.path=/drone-codesearch http.status=200
   protocol=mcp mcp.method.name=tools/list duration=2ms
 ```
 
-One place to watch, meter, rate-limit, and guardrail every tool call — regardless of which agent or model made it.
-
-## The kagent transcript
-
-And the agent actually flying, prompt by prompt (the Standard/gpt-5.5 run):
-
-```text
-▸ Take off and hover.
-  Airborne and hovering at ~80 cm. Battery 90%, link live, attitude stable.
-▸ Do a flip.
-  Front flip complete. Back in hover at ~80 cm.
-▸ Take a photo and describe what you see.
-  Photo captured. A bright indoor lab: desk with two monitors, a potted plant
-  by a window, pale grey walls.
-▸ Spin around 360 degrees.
-  360° clockwise spin complete. Back in hover.
-▸ Land and give me a status report.
-  Landed. 0 cm, link live, attitude level (roll 0 / pitch 0 / yaw 0), battery 86%.
-```
+Because the same proxy fronts both the models and the MCP server, it meters both sides — one place to compare gpt-5.5, Claude, and grok on an apples-to-apples flight, and to swap between them with a config change.
 
 ## The money lesson
 
-Two knobs, and both are one-line changes because agentgateway sits between the model and the tools:
+1. **Pick the model first — it's the 5× lever.** grok-4.3 flew the mission for ~1/5th the cost of Claude and finished 3× faster; gpt-5.5 is the leaner near-tie. Claude is a deliberate premium.
+2. **Then tune the tool mode for that model.** CodeSearch saves gpt-5.5 ~39%; it does nothing for Claude.
+3. **Meter everything.** Two models can finish the identical job and differ 5× on cost from verbosity alone. agentgateway makes both the swap and the measurement a one-liner.
 
-1. **Tool mode** (`toolMode: Standard` → `CodeSearch`) cut gpt-5.5's bill ~39% on this 28-tool catalog — but did nothing for Claude. Measure it on *your* catalog and *your* model.
-2. **Model** (`modelConfig`) is the bigger lever: grok-4.3 flew the same mission for **~1/5th the cost of Claude** and finished 3× faster.
-
-The gateway makes trying every combination a config change and a Langfuse query — so there's no excuse not to measure before you ship. Full 28-tool catalog, command lifecycle, and these results live on the flight deck: **[goose.maniak.ai](https://goose.maniak.ai)**.
+Full flight, all three models, the charts, and the traces live on the flight deck: **[goose.maniak.ai](https://goose.maniak.ai)**.
