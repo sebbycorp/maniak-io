@@ -46,14 +46,16 @@ Live flight deck: **[goose.maniak.ai](https://goose.maniak.ai)**.
 <text x="54" y="314" fill="#4c5c76" font-family="ui-monospace,monospace" font-size="9">cost per full flight (USD) · lower is better</text>
 </svg>
 
-| Model | Mode | Tokens | Latency | Cost |
-|---|---|--:|--:|--:|
-| **grok-4.3** 🏆 | CodeSearch | 99.5k | 31s | **$0.3050** |
-| grok-4.3 | Standard | 113.0k | 25s | $0.3441 |
-| gpt-5.5 | CodeSearch | 53.1k | 37s | $0.3201 |
-| gpt-5.5 | Standard | 98.3k | 47s | $0.5252 |
-| claude-fable-5 | CodeSearch | 165.6k | 101s | $1.5167 |
-| claude-fable-5 | Standard | 159.5k | 79s | $1.6676 |
+| Model | Mode | Tokens | Latency | Cost | % saved |
+|---|---|--:|--:|--:|--:|
+| **grok-4.3** 🏆 | CodeSearch | 99.5k | 31s | **$0.3050** | **82%** |
+| grok-4.3 | Standard | 113.0k | 25s | $0.3441 | 79% |
+| gpt-5.5 | CodeSearch | 53.1k | 37s | $0.3201 | 81% |
+| gpt-5.5 | Standard | 98.3k | 47s | $0.5252 | 69% |
+| claude-fable-5 | CodeSearch | 165.6k | 101s | $1.5167 | 9% |
+| claude-fable-5 | Standard | 159.5k | 79s | $1.6676 | — (dearest) |
+
+> **% saved** is versus the dearest run — claude-fable-5 on Standard ($1.6676). Pick grok-4.3 on CodeSearch and you keep **82%** of that bill in your pocket for the same flight.
 
 Three findings, in order of how much money they save you:
 
