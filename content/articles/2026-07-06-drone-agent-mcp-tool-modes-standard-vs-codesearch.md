@@ -12,6 +12,13 @@ The bill for that identical flight ranged **5× from cheapest to dearest.** This
 
 Live flight deck: **[goose.maniak.ai](https://goose.maniak.ai)**.
 
+Here's the agent flying the mission on the real drone:
+
+<video controls playsinline muted preload="metadata" style="width:100%;height:auto;border-radius:8px" aria-label="The AI agent flying the identical mission on a real Ryze RoboMaster TT drone">
+<source src="/videos/2026-07-06-drone-flight.mp4" type="video/mp4">
+Your browser does not support the video tag.
+</video>
+
 ## The verdict: cost per flight
 
 <svg viewBox="0 0 720 320" role="img" aria-label="Cost per flight — Standard vs CodeSearch, three models" style="width:100%;height:auto">
@@ -134,56 +141,19 @@ Standard burns 17 calls and 45k tokens on that one turn; CodeSearch collapses it
 
 None of this is estimated. kagent (Solo Enterprise for kagent) traces every flight — one trace per prompt, with input, output, duration, and tokens — and exports the same spans to Langfuse:
 
-<div class="bt-traces">
-  <div class="bt-card">
-    <div class="bt-head"><span class="bt-name">Tracing</span><span class="bt-mode">one trace per prompt</span></div>
-    <table class="bt-list">
-      <tr><td>Take off and hover</td><td>1.11s</td><td>2,815</td></tr>
-      <tr><td>Do a flip</td><td>0.74s</td><td>2,925</td></tr>
-      <tr><td>Take a photo</td><td>1.51s</td><td>3,104</td></tr>
-      <tr><td>Spin 360&deg;</td><td>1.03s</td><td>3,229</td></tr>
-      <tr><td>Land + status report</td><td>1.46s</td><td>3,614</td></tr>
-    </table>
-  </div>
-  <div class="bt-card">
-    <div class="bt-head"><span class="bt-name">drone_agent_cs_claude</span><span class="bt-mode">CodeSearch &middot; claude-fable-5</span></div>
-    <div class="bt-flow"><span class="bt-tool">get_tool</span><span class="bt-arr">&rarr;</span><span class="bt-tool">run_code</span></div>
-    <div class="bt-badges"><span>prompt 5,503</span><span>output 120</span><span class="bt-tot">total 5,623</span></div>
-    <div class="bt-out">&ldquo;&#128247; Photo captured &mdash; a bright indoor lab: a desk with two monitors, a potted plant by a window, pale grey walls.&rdquo;</div>
-  </div>
-  <div class="bt-card">
-    <div class="bt-head"><span class="bt-name">drone_agent_claude</span><span class="bt-mode">Standard &middot; claude-fable-5</span></div>
-    <div class="bt-flow"><span class="bt-tool">celebrate</span><span class="bt-arr">&middot;</span><span class="bt-tool">get_state</span></div>
-    <div class="bt-badges"><span>prompt 6,898</span><span>output 99</span><span class="bt-tot">total 6,997</span></div>
-    <div class="bt-out">&ldquo;&#127744; Full 360&deg; spin complete &mdash; height holding at 80 cm, battery 75%, attitude level.&rdquo;</div>
-  </div>
-  <div class="bt-card">
-    <div class="bt-head"><span class="bt-name">drone_agent_cs_xai</span><span class="bt-mode">CodeSearch &middot; grok-4.3</span></div>
-    <div class="bt-flow"><span class="bt-tool">get_tool</span><span class="bt-arr">&rarr;</span><span class="bt-tool">run_code</span></div>
-    <div class="bt-badges"><span>prompt 2,921</span><span class="bt-hi">output 4</span><span class="bt-tot">total 2,933</span></div>
-    <div class="bt-out">&ldquo;Forward flip completed.&rdquo; &mdash; grok in 4 output tokens. Terse and fast.</div>
-  </div>
-</div>
-<style>
-.bt-traces{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin:16px 0}
-.bt-card{border:1px solid #26323f;border-radius:11px;background:#0b1119;padding:14px 15px;color:#9fb0c4}
-.bt-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;border-bottom:1px solid #1c2a3d;padding-bottom:9px;margin-bottom:10px;flex-wrap:wrap}
-.bt-name{font-family:ui-monospace,monospace;font-size:.82rem;color:#46e0c0;font-weight:600}
-.bt-mode{font-family:ui-monospace,monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:#6b7a90}
-.bt-flow{display:flex;align-items:center;gap:8px;margin-bottom:11px}
-.bt-tool{font-family:ui-monospace,monospace;font-size:.72rem;color:#dbe6f2;background:#16212e;border:1px solid #26323f;border-radius:6px;padding:4px 9px}
-.bt-arr{color:#46e0c0;font-family:ui-monospace,monospace}
-.bt-badges{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
-.bt-badges span{font-family:ui-monospace,monospace;font-size:.58rem;letter-spacing:.06em;text-transform:uppercase;color:#8595a8;background:#101a26;border:1px solid #1c2a3d;border-radius:5px;padding:3px 7px}
-.bt-badges .bt-tot{color:#dbe6f2}
-.bt-badges .bt-hi{color:#ffb23e;border-color:#ffb23e}
-.bt-out{font-size:.9rem;line-height:1.5;color:#9fb0c4}
-.bt-list{width:100%;border-collapse:collapse;font-family:ui-monospace,monospace;font-size:.72rem;margin:0}
-.bt-list td{padding:5px 4px;border-bottom:1px solid #1c2a3d;color:#9fb0c4}
-.bt-list td:first-child{color:#dbe6f2}
-.bt-list td:not(:first-child){text-align:right;color:#6b7a90}
-@media(max-width:640px){.bt-traces{grid-template-columns:1fr}}
-</style>
+![kagent Tracing list: drone_agent flight traces, each a prompt (Take off, Do a flip, Take a photo, Spin 360, Land + status) with duration ~0.7–2.4s and ~2.8k–3.8k tokens per trace.](/images/articles/2026-07-06-drone-tool-modes/kagent-tracing-list.png)
+
+Drill into a trace and you see the execution flow and every tool call. CodeSearch on Claude — `get_tool` then `run_code` to take the photo:
+
+![kagent trace detail for drone_agent_cs_claude: Execution Flow shows get_tool then run_code; Trace Tree shows call_llm → generate_content (claude-fable-5) → openai.chat → execute_tool; 5,623 tokens for the turn.](/images/articles/2026-07-06-drone-tool-modes/kagent-trace-cs-claude.png)
+
+Claude on Standard, doing the 360° via the `celebrate` tool and reading `get_state`:
+
+![kagent trace detail for drone_agent_claude: celebrate + get_state tools; output reports a full 360° spin, 80cm, battery 75%; 6,997 tokens.](/images/articles/2026-07-06-drone-tool-modes/kagent-trace-claude.png)
+
+And grok on CodeSearch — same shape, but look how little it says (4 output tokens — that's why grok's bill is tiny):
+
+![kagent trace detail for drone_agent_cs_xai: get_tool + run_code on grok-4.3; the Do-a-flip turn returns just 'Forward flip completed' — 4 output tokens, 2,933 total.](/images/articles/2026-07-06-drone-tool-modes/kagent-trace-cs-xai.png)
 
 ## The gateway sees — and prices — every hop
 
