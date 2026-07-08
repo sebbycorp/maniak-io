@@ -246,19 +246,41 @@ redaction decisions, and audit evidence.
 This is the part that makes the demo much easier to explain. The UI install is
 not an afterthought; it is part of the deployment.
 
-I install the management chart at `0.4.7` with the agentgateway product
-enabled:
+`0.4.8` adds one prerequisite that `0.4.7` did not need: the `ui-backend`
+container now watches `platform.solo.io` CRDs (`KubernetesCluster`). Install the
+dedicated `management-crds` chart first, or `ui-backend` CrashLoopBackOffs with
+`no matches for kind "KubernetesCluster" in version "platform.solo.io/v1alpha1"`:
+
+```bash
+helm upgrade -i management-crds \
+  oci://us-docker.pkg.dev/solo-public/solo-enterprise-helm/charts/management-crds \
+  --namespace agentgateway-system --create-namespace \
+  --version 0.4.8
+```
+
+Then install the management chart at `0.4.8` with the agentgateway product
+enabled. I also turn on cost management so the UI exposes spend analytics:
 
 ```bash
 helm upgrade -i management \
   oci://us-docker.pkg.dev/solo-public/solo-enterprise-helm/charts/management \
   --namespace agentgateway-system \
   --create-namespace \
-  --version 0.4.7 \
+  --version 0.4.8 \
   --set cluster="mgmt-cluster" \
   --set products.agentgateway.enabled=true \
+  --set products.agentgateway.features.cost-management=true \
   --set-string licensing.licenseKey="${AGENTGATEWAY_LICENSE_KEY}"
 ```
+
+One subtlety worth knowing: `products.agentgateway.features.cost-management=true`
+renders `PRODUCT_AGENTGATEWAY_FEATURES_COST_MANAGEMENT_ENABLED=true` on the
+**`ui-frontend`** container — that is the flag that turns on the Cost Management
+tab. The **`ui-backend`** container does not get that variable; it gets
+`AGENTGATEWAY_COST_WRITES_ENABLED`, driven by the separate
+`cost-management-writes` value (default `true`). So the toggle you flip gates
+the frontend UI, and a second value governs whether the backend can write
+budgets, dimensions, and virtual keys.
 
 For a demo, I leave `SOLO_UI_OIDC_ISSUER` empty so the chart's built-in
 auto-auth path is used. For a real environment, wire it to your IdP and provide
@@ -346,10 +368,32 @@ starting in YAML:
 - `/agw/direct`, `/agw/cors`, and `/agw/rate-limit` are native agentgateway
   Enterprise policy examples.
 
+The **Routes** inventory is the same set from the control plane, with match
+prefix, resolved destination, gateway, and observed p95 latency once traffic has
+run:
+
+![Solo Enterprise for agentgateway routes inventory showing agw-cors, agw-direct, agw-rate-limit, option-a, and option-c routes with match prefixes, destinations, and p95 latency.](/images/articles/2026-07-03-agentgateway-f5-ui-setup/agentgateway-routes.png)
+
 The UI is not a replacement for `kubectl logs` for raw pod stdout. Treat it as
 the topology and request-visibility layer: routes, destinations, policies,
 playground, and traces. Use Kubernetes logs for adapter exceptions and pod
 startup messages.
+
+## Step 7b: cost management for the same traffic
+
+Because I installed the UI with
+`products.agentgateway.features.cost-management=true`, the Cost Management tab
+estimates spend for the traffic flowing through these routes. Spend is computed
+from token counts × your configured per-token prices — an estimate, not the
+provider's invoice — and it breaks down by provider, model family, model,
+group, user, and virtual key.
+
+<!-- TODO: add Cost Management dashboard screenshot at /images/articles/2026-07-03-agentgateway-f5-ui-setup/agentgateway-cost-management.png -->
+
+This is where budgets and guardrails meet in one console: the same route that F5
+scans for safety also reports what it costs. Pair it with
+`EnterpriseAgentgatewayBudget` (from the hard spend limits article) to enforce a
+ceiling, not just observe one.
 
 ## Step 8: prove enforcement with traffic
 
@@ -431,10 +475,15 @@ kubectl logs -n agentgateway-system deploy/f5-guardrails-adapter --tail=80
 The healthy state should include:
 
 - `enterprise-agentgateway` chart at `v2026.6.3`
-- `management` chart at `0.4.7`
-- `solo-enterprise-ui` service present
+- `management-crds` chart installed (so `ui-backend` finds the `platform.solo.io`
+  CRDs)
+- `management` chart at `0.4.8`
+- `solo-enterprise-ui` pod `5/5` Ready (a crash-looping `ui-backend` means the
+  `management-crds` install was skipped)
 - `solo-enterprise-telemetry-collector` running
 - `tracing` policy accepted and attached
+- Cost Management tab visible in the UI
+  (`PRODUCT_AGENTGATEWAY_FEATURES_COST_MANAGEMENT_ENABLED=true` on `ui-frontend`)
 - agentgateway request logs with `trace.id` and `span.id`
 
 ## What this adds on top of hard spend limits
