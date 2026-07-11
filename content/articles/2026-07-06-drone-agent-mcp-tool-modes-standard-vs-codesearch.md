@@ -1,5 +1,5 @@
 ---
-title: "GPT-5.5 vs Claude vs Grok: Which Model Saves Money? (I Made Them Fly a Drone)"
+title: "GPT-5.5 vs Claude vs Grok with agentgateway: Which Model Saves Money? (I Made Them Fly a Drone)"
 date: 2026-07-06
 description: "I flew the identical mission on a real Ryze RoboMaster TT drone with three models — gpt-5.5, claude-fable-5, and grok-4.3 — each swapped in with a one-line agentgateway ModelConfig, every token metered in Langfuse. The cost gap was 5×. Here's who saves money, why, and how the MCP tool mode changes the answer. Real graphs, real agentgateway logs, real kagent traces."
 tags: ["agentgateway", "kagent", "mcp", "llm-cost", "gpt-5.5", "claude", "grok", "langfuse", "tokenomics"]
