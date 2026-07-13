@@ -141,12 +141,6 @@ Substrate's own demos (e.g. many stateful counter actors on few workers) show th
 - Egress can sit behind [agentgateway](https://agentgateway.dev) so agents never hold provider keys (Solo's enterprise pattern).
 - Snapshot-to-storage means you can reclaim compute without losing session state.
 
-### 6. What this is *not* (yet)
-
-- **Production-ready platform** — pre-1.0; APIs will change.
-- **Python ADK on substrate** — gVisor checkpoint path expects the **Go** runtime for `SandboxAgent`.
-- **macOS Docker Desktop playground** — gVisor checkpoint/restore needs real Linux kernel features. Use a Linux VM.
-
 North-star metrics from the architecture docs: ~100 ms activation p95, extreme scale of idle actors, high wakeup throughput. Treat those as direction, not a SLA for the kind lab.
 
 ---
