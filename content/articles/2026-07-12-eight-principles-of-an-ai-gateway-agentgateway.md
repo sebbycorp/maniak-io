@@ -39,7 +39,7 @@ and [Why your AI agents need a gateway](/articles/2026-02-19-why-your-ai-agents-
 
 | # | Principle | The problem it solves |
 |---|-----------|-----------------------|
-| 1 | **Unified OpenAI‑compatible LLM access** | Every provider has a different SDK, auth, and payload. Apps get locked to one vendor. |
+| 1 | **Unified LLM access** (one API, any provider) | Every provider has a different SDK, auth, and payload. Apps get locked to one vendor. |
 | 2 | **MCP tool federation** (stdio/HTTP/SSE/OpenAPI) | Each tool server is a separate connection, auth surface, and thing to secure. |
 | 3 | **Secure A2A agent discovery & collaboration** | Agents calling agents with no identity, no scoping, no audit. |
 | 4 | **Built‑in guardrails** (regex / moderation / webhooks) | PII, secrets, and prompt injection flow straight through to the model. |
@@ -53,21 +53,23 @@ Let's take them one at a time.
 
 ---
 
-## 1. Unified, OpenAI‑compatible LLM access
+## 1. Unified LLM access — one API, any provider
 
 **Why it matters.** The moment you have more than one model provider — and
-you will, the day OpenAI has an outage or Anthropic ships something better
-— you feel the tax. OpenAI, Anthropic, Gemini, Bedrock, Vertex, and your
-self‑hosted vLLM all speak *almost* the same dialect but differ in auth
-headers, request shape, streaming semantics, and error codes. If each
-application wires directly to each provider, you've hard‑coded vendor
-lock‑in into every service, and swapping a model means a code change and a
-redeploy.
+you will, the day one provider has an outage or another ships something
+better — you feel the tax. Anthropic, OpenAI, Gemini, Bedrock, Vertex, and
+your self‑hosted vLLM each have their own SDK, auth headers, request shape,
+streaming semantics, and error codes. If each application wires directly to
+each provider, you've hard‑coded vendor lock‑in into every service, and
+swapping a model means a code change and a redeploy.
 
-An AI gateway makes this a routing concern. Apps speak **one**
-OpenAI‑compatible API to the gateway; the gateway translates to whatever
-provider sits behind the route. Changing models becomes a config change,
-not a code change.
+An AI gateway makes this a routing concern. Apps speak **one** stable API to
+the gateway — the widely‑adopted OpenAI‑style schema is the common wire
+format, but the point isn't OpenAI, it's *one* front door — and the gateway
+translates to whatever provider sits behind the route: Anthropic today,
+Gemini tomorrow, a local model for the cheap path. Changing or mixing models
+becomes a config change, not a code change, and no application is coupled to
+any single vendor.
 
 **How agentgateway does it.** A backend declares the provider; a route maps
 a path prefix to that backend and normalizes the API surface. Here's a
