@@ -420,12 +420,15 @@ grpcurl -insecure -H "authorization: Bearer $TOKEN" -d '{}' \
 grpcurl -insecure -H "authorization: Bearer $TOKEN" -d '{}' \
   localhost:18443 ateapi.Control/ListActors
 
-ACTOR_ID=$(grpcurl -insecure -H "authorization: Bearer $TOKEN" -d '{}' \
-  localhost:18443 ateapi.Control/ListActors | jq -r '.actors[0].actorId // empty')
+ACTORS_JSON=$(grpcurl -insecure -H "authorization: Bearer $TOKEN" -d '{}' \
+  localhost:18443 ateapi.Control/ListActors)
+ACTOR_ID=$(echo "$ACTORS_JSON" | jq -r '.actors[0].actorId // empty')
+ATESPACE=$(echo "$ACTORS_JSON" | jq -r '.actors[0].atespace // empty')
 
-if [ -n "${ACTOR_ID:-}" ]; then
+# ResumeActor expects actor_ref { atespace, name } — not a bare actor_id field.
+if [ -n "${ACTOR_ID:-}" ] && [ -n "${ATESPACE:-}" ]; then
   grpcurl -insecure -H "authorization: Bearer $TOKEN" \
-    -d "{\"actor_id\":\"$ACTOR_ID\"}" \
+    -d "{\"actor_ref\":{\"atespace\":\"$ATESPACE\",\"name\":\"$ACTOR_ID\"}}" \
     localhost:18443 ateapi.Control/ResumeActor
 fi
 ```
