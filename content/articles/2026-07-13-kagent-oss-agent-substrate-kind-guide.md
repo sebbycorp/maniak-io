@@ -16,6 +16,17 @@ Agent sessions are bursty. A user asks a question, the agent thinks for a few se
 
 **[kagent](https://kagent.dev)** is the Kubernetes-native agent control plane. Wire substrate in as its execution layer and a declarative `SandboxAgent` becomes a gVisor **actor** instead of a long-running Deployment.
 
+### The big idea, in plain English
+
+Picture a small hotel with a handful of rooms and a lot of guests.
+
+- **The rooms are your pods** (substrate calls them *workers*). They're expensive to build, so you keep only a few, and you keep them ready to use.
+- **Each guest is one agent conversation** (an *actor*). A guest is only in the room while they're actually doing something.
+- **When a guest steps out**, you don't leave the room sitting empty on the clock. You snapshot the room *exactly as it is* — the open laptop, the papers on the desk, the half-finished coffee — pack it into storage, and give the room to the next guest.
+- **When the first guest comes back**, you restore their room in **under a second**, precisely how they left it. They never know it was gone.
+
+That's Agent Substrate. A few "rooms" (pods) serve far more "guests" (agent sessions) than you have rooms — because idle guests are parked in cheap storage instead of holding a room hostage. The rest of this article is the concepts, the use cases, and the exact commands to build that hotel on your laptop.
+
 This guide covers three things:
 
 1. **What a substrate is** (concepts from [learn.agentsubstrate.dev](https://learn.agentsubstrate.dev/))
@@ -28,7 +39,9 @@ This guide covers three things:
 
 ## What is Agent Substrate?
 
-From the official atlas at [learn.agentsubstrate.dev](https://learn.agentsubstrate.dev/):
+**Short version:** it lets a handful of pods behave like thousands of always-on agents, by putting the idle ones to sleep in cheap storage and waking them instantly when needed.
+
+Here's the official definition, from the atlas at [learn.agentsubstrate.dev](https://learn.agentsubstrate.dev/):
 
 > **Agent Substrate** is a Kubernetes-native runtime for highly-multiplexed actor workloads — AI agents, sandboxed environments, stateful services. It decouples actor lifecycle from Pods, so a small pool of pre-warmed gVisor workers can host **30× more actors than there are pods**, by suspending idle actors to object storage and restoring them on demand.
 
@@ -47,7 +60,7 @@ Architecture bet in one sentence: **Kubernetes provisions infrastructure; substr
 
 ## Core concepts (glossary)
 
-These terms show up everywhere in the UI, CRDs, and `grpcurl` surface. Definitions match [learn.agentsubstrate.dev/concepts](https://learn.agentsubstrate.dev/concepts/actor/).
+These terms show up everywhere in the UI, CRDs, and `grpcurl` surface. Don't let the `ate*` names scare you — sticking with the hotel picture: an **actor** is a guest, a **worker** is a room, a **snapshot** is the guest's packed-up room in storage, and everything starting with `ate` is hotel staff (the front desk, the concierge, the bellhop). Definitions match [learn.agentsubstrate.dev/concepts](https://learn.agentsubstrate.dev/concepts/actor/).
 
 | Term | Meaning |
 |------|---------|
@@ -88,6 +101,8 @@ On each HTTP hit to an actor:
 3. ateapi picks an idle worker from Redis (no kube-scheduler), asks **atelet** to restore the snapshot.
 4. **ateom-gvisor** runs `runsc restore -background` — sentry comes up immediately; pages fault in on demand.
 5. Router rewrites `:authority` to the worker pod and forwards the request.
+
+**In plain English:** a message comes in, the router figures out which "guest" it's for, wakes them up into any free room if they were asleep, and forwards the message. If the guest was already awake, it just forwards — no wake-up needed. Either way, you never pay for an empty room.
 
 Warm path (already RUNNING): skip restore, just route. Cold path (SUSPENDED): restore + route. No idle pod tax either way.
 
