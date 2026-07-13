@@ -1,12 +1,12 @@
 ---
-title: "kagent OSS + Agent Substrate on kind: What It Is, Why It Matters, How to Run It"
+title: "Code Share: Deploy kagent with Agent Substrate"
 date: 2026-07-13
 description: "Agent sessions are bursty and idle most of the time. Agent Substrate multiplexes gVisor-sandboxed actors onto a small pool of warm workers with sub-second suspend/resume. This guide explains the model, the use cases, and how to stand up kagent OSS with substrate on a kind cluster using a one-shot setup script."
 tags: ["kagent", "Agent Substrate", "gVisor", "kind", "Kubernetes", "SandboxAgent", "actors", "serverless"]
 categories: ["AI", "Agents", "Kubernetes"]
 ---
 
-# kagent OSS + Agent Substrate on kind: What It Is, Why It Matters, How to Run It
+# Code Share: Deploy kagent with Agent Substrate
 
 **By Sebastian Maniak**
 
@@ -400,12 +400,20 @@ kubectl -n kagent port-forward svc/kagent-ui 8080:8080
 # http://localhost:8080 → Agents → hello-substrate
 ```
 
+The **Agents** view lists every agent across namespaces — `hello-substrate` (our declarative Kubernetes assistant on the default pool) sits alongside the built-in kagent library (k8s, Helm, Istio, Cilium, kgateway, …). Open it to start a conversation.
+
+<img src="/images/articles/2026-07-13-kagent-substrate/kagent-agents-cards.png" alt="kagent OSS UI, Agents view in card layout showing agents across all namespaces — kagent/hello-substrate ('A Kubernetes assistant running inside a substrate gVisor actor') alongside argo-rollouts-conversion, cilium-debug, cilium-manager, cilium-policy, helm, istio, k8s, and kgateway agents, each backed by OpenAI (gpt-4.1-mini)." style="width:100%;height:auto;border-radius:14px;border:1px solid rgba(255,255,255,.08);" />
+
 Try:
 
 > *What are you, and where are you running? Answer in one sentence.*  
 > *List pods in ate-system.*
 
 Between requests the session actor should sit **Suspended** (UI **View → Substrate**, or CLI below). Next message restores it sub-second.
+
+The **View → Substrate** page is where the multiplexing thesis becomes visible: the `kagent-default` **WorkerPool** (2 replicas on `ateom-gvisor:v0.0.8`), the `hello-substrate` **ActorTemplate** (`READY`, sandbox class `gvisor`, backed by its golden snapshot), the live **actor** flipping to `SUSPENDED` between turns, and both **workers** sitting `idle` — no pod tax while the session waits.
+
+<img src="/images/articles/2026-07-13-kagent-substrate/substrate-view.gif" alt="kagent OSS UI, View → Substrate page: the kagent-default WorkerPool with 2 replicas on ateom-gvisor:v0.0.8, the hello-substrate ActorTemplate in READY phase with sandbox class gvisor and a golden snapshot, a single actor in SUSPENDED status mapped to that template with no worker pod assigned, and two kagent-default worker pods both marked idle." style="width:100%;height:auto;border-radius:14px;border:1px solid rgba(255,255,255,.08);" />
 
 #### Drive ate-api with grpcurl
 
@@ -500,6 +508,7 @@ Christian Posta's write-up frames the product story: agents are long-lived but i
 
 | Path | Why |
 |------|-----|
+| [`01-kagent-agent-substrate`](https://github.com/sebbycorp/kagent-demos/tree/main/01-kagent-agent-substrate) | Runnable code for this guide: `setup.sh`, `teardown.sh`, manifests |
 | [learn.agentsubstrate.dev](https://learn.agentsubstrate.dev/) | Visual topology, resume flow, ateapi internals |
 | [AgentHarness on kagent](https://kagent.dev/docs/kagent/examples/agent-harness) | Long-lived coding sandboxes on substrate |
 | [agentgateway](https://agentgateway.dev) | Govern LLM/MCP egress; keep keys off the actor |
