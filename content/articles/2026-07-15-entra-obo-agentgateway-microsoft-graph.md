@@ -1,12 +1,12 @@
 ---
-title: "On-Behalf-Of, Explained: How AgentGateway Swaps an Entra Token for a Microsoft Graph Token"
+title: "On-Behalf-Of, Explained: How agentgateway Swaps an Entra Token for a Microsoft Graph Token"
 date: 2026-07-15
-description: "A story-driven walkthrough of the OAuth 2.0 On-Behalf-Of (OBO) flow using Enterprise AgentGateway as the token broker. We start from a broken 401, explain why token audiences make direct calls impossible, then show exactly how the gateway exchanges a middle-tier Entra JWT for a Microsoft Graph token — grant_type=jwt-bearer, on_behalf_of — and injects it upstream so an MCP server can call GET /me without ever holding a client secret. Includes sequence diagrams, the policy/backend/route YAML, and a narrated run of the test-entra-obo.sh demo."
+description: "A story-driven walkthrough of the OAuth 2.0 On-Behalf-Of (OBO) flow using Enterprise agentgateway as the token broker. We start from a broken 401, explain why token audiences make direct calls impossible, then show exactly how the gateway exchanges a middle-tier Entra JWT for a Microsoft Graph token — grant_type=jwt-bearer, on_behalf_of — and injects it upstream so an MCP server can call GET /me without ever holding a client secret. Includes sequence diagrams, the policy/backend/route YAML, and a narrated run of the test-entra-obo.sh demo."
 ---
 
 There's a moment in almost every enterprise integration where you have *a* token, but not *the* token. You're holding a perfectly valid JWT that your identity provider signed — your user is authenticated, the claims are real — and yet the API you need to call rejects it with a flat `401`. Nothing is wrong with the token. It's just addressed to someone else.
 
-That's the problem the **OAuth 2.0 On-Behalf-Of (OBO)** flow was invented to solve, and it's the story this article tells. We'll use a small, real lab: an MCP client holding an Entra (Azure AD) token, an [Enterprise AgentGateway](https://agentgateway.dev) acting as the broker, and Microsoft Graph as the downstream API. By the end you'll understand *why* OBO exists, *how* the exchange actually works on the wire, and *how to* configure the gateway to do it for you — all reproducible with a single script, [`test-entra-obo.sh`](https://github.com/sebbycorp/k8s-goose/blob/main/scripts/test-entra-obo.sh).
+That's the problem the **OAuth 2.0 On-Behalf-Of (OBO)** flow was invented to solve, and it's the story this article tells. We'll use a small, real lab: an MCP client holding an Entra (Azure AD) token, an [Enterprise agentgateway](https://agentgateway.dev) acting as the broker, and Microsoft Graph as the downstream API. By the end you'll understand *why* OBO exists, *how* the exchange actually works on the wire, and *how to* configure the gateway to do it for you — all reproducible with a single script, [`test-entra-obo.sh`](https://github.com/sebbycorp/k8s-goose/blob/main/scripts/test-entra-obo.sh).
 
 ## The 401 that starts everything
 
@@ -72,7 +72,7 @@ Before the flow, meet the cast. The whole demo is three network hops wide.
 ```mermaid
 graph TD
     C["MCP Client<br/>(test-entra-obo.sh / MCP Inspector)"]
-    G["AgentGateway<br/>http://172.16.10.155:30160/graph-me<br/>policy: entra-obo-policy"]
+    G["agentgateway<br/>http://172.16.10.155:30160/graph-me<br/>policy: entra-obo-policy"]
     M["graph-me-mcp<br/>(in-cluster MCP server)"]
     GR["Microsoft Graph<br/>GET /v1.0/me"]
     E["Microsoft Entra<br/>/oauth2/v2.0/token"]
@@ -93,7 +93,7 @@ graph TD
 | Actor | Role | What it holds |
 |---|---|---|
 | **MCP client** | Starts the request | A middle-tier Entra JWT (`aud = goose-solo-ui-backend`) |
-| **AgentGateway** | The broker | The app **client secret**, and the OBO policy |
+| **agentgateway** | The broker | The app **client secret**, and the OBO policy |
 | **Microsoft Entra** | Security token service | The signing keys; issues the exchanged token |
 | **graph-me-mcp** | Downstream MCP server | *Nothing* — it receives an injected Graph token |
 | **Microsoft Graph** | The protected API | Validates `aud = https://graph.microsoft.com` |
@@ -107,7 +107,7 @@ Now the whole thing on one wire diagram. This is what happens on the very first 
 ```mermaid
 sequenceDiagram
     participant C as MCP Client
-    participant AG as AgentGateway<br/>(entra-obo-policy)
+    participant AG as agentgateway<br/>(entra-obo-policy)
     participant E as Microsoft Entra (STS)
     participant M as graph-me-mcp
     participant G as Microsoft Graph
@@ -237,7 +237,7 @@ On this call the gateway validates the JWT, calls Entra's `/oauth2/v2.0/token` w
 ```text
 • graph_me
     Call Microsoft Graph GET /me using the bearer token
-    injected by AgentGateway after the Entra OBO exchange.
+    injected by agentgateway after the Entra OBO exchange.
 ```
 
 Same middle-tier bearer from the client; the gateway silently reuses the exchanged Graph token upstream.
@@ -248,7 +248,7 @@ The MCP server's code is almost embarrassingly simple — that's the point:
 
 ```text
 GET https://graph.microsoft.com/v1.0/me
-Authorization: Bearer <token AgentGateway injected>
+Authorization: Bearer <token agentgateway injected>
 ```
 
 ```text
@@ -307,6 +307,6 @@ QUIET=1 ./scripts/test-entra-obo.sh
 
 ## The one thing to remember
 
-A valid token is not a universal token. Its audience pins it to one destination, on purpose. **On-Behalf-Of is the sanctioned way to cross that boundary** — a middle tier proves the user already consented, and the IdP re-mints the identity for a new audience without a second login. Put that exchange in AgentGateway and you get the best of both worlds: downstream services stay simple and secretless, while the one component that *does* hold the secret is the one you can watch, rotate, and lock down.
+A valid token is not a universal token. Its audience pins it to one destination, on purpose. **On-Behalf-Of is the sanctioned way to cross that boundary** — a middle tier proves the user already consented, and the IdP re-mints the identity for a new audience without a second login. Put that exchange in agentgateway and you get the best of both worlds: downstream services stay simple and secretless, while the one component that *does* hold the secret is the one you can watch, rotate, and lock down.
 
 The client never sees Graph. The server never sees the secret. The gateway sees both, briefly, and only to trade one true token for another.
