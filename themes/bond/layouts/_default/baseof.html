@@ -7,7 +7,8 @@
   <meta name="description" content="{{ with .Description }}{{ . }}{{ else }}{{ .Site.Params.description }}{{ end }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <meta name="theme-color" content="#FAFAFA">
   <link rel="stylesheet" href="{{ "css/style.css" | relURL }}">
   <link rel="stylesheet" href="{{ "css/syntax.css" | relURL }}">
   <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
@@ -15,49 +16,46 @@
     (function() {
       var mkVars = {
         primaryColor: '#FFFFFF',
-        primaryTextColor: '#17181C',
-        primaryBorderColor: '#E5341F',
-        lineColor: '#17181C',
-        secondaryColor: '#FAF8F3',
-        secondaryTextColor: '#17181C',
-        secondaryBorderColor: '#E7E3D9',
-        tertiaryColor: '#F1EFE9',
-        tertiaryTextColor: '#17181C',
-        tertiaryBorderColor: '#E7E3D9',
-        noteBkgColor: '#FFF7D6',
-        noteTextColor: '#17181C',
-        noteBorderColor: '#FFC528',
+        primaryTextColor: '#0A0A0B',
+        primaryBorderColor: '#E11D28',
+        lineColor: '#52525B',
+        secondaryColor: '#FAFAFA',
+        secondaryTextColor: '#0A0A0B',
+        secondaryBorderColor: '#E4E4E7',
+        tertiaryColor: '#F4F4F5',
+        tertiaryTextColor: '#0A0A0B',
+        tertiaryBorderColor: '#D4D4D8',
+        noteBkgColor: '#F7FEE7',
+        noteTextColor: '#0A0A0B',
+        noteBorderColor: '#65A30D',
         actorBkg: '#FFFFFF',
-        actorTextColor: '#17181C',
-        actorBorder: '#E5341F',
-        actorLineColor: '#9A9CA3',
-        signalColor: '#17181C',
-        signalTextColor: '#17181C',
-        labelBoxBkgColor: '#F1EFE9',
-        labelBoxBorderColor: '#E7E3D9',
-        labelTextColor: '#17181C',
-        loopTextColor: '#17181C',
+        actorTextColor: '#0A0A0B',
+        actorBorder: '#E11D28',
+        actorLineColor: '#A1A1AA',
+        signalColor: '#0A0A0B',
+        signalTextColor: '#0A0A0B',
+        labelBoxBkgColor: '#F4F4F5',
+        labelBoxBorderColor: '#E4E4E7',
+        labelTextColor: '#0A0A0B',
+        loopTextColor: '#27272A',
         activationBkgColor: '#FFFFFF',
-        activationBorderColor: '#E5341F',
+        activationBorderColor: '#E11D28',
         sequenceNumberColor: '#FFFFFF',
-        background: '#FAF8F3',
+        background: '#FAFAFA',
         mainBkg: '#FFFFFF',
-        nodeBorder: '#E5341F',
-        clusterBkg: '#FAF8F3',
-        clusterBorder: '#E7E3D9',
-        titleColor: '#E5341F',
-        edgeLabelBackground: '#FAF8F3',
-        nodeTextColor: '#17181C'
+        nodeBorder: '#E11D28',
+        clusterBkg: '#FAFAFA',
+        clusterBorder: '#E4E4E7',
+        titleColor: '#E11D28',
+        edgeLabelBackground: '#FAFAFA',
+        nodeTextColor: '#0A0A0B'
       };
       mermaid.initialize({
-        // startOnLoad off: rendering is triggered after webfonts load (see
-        // bottom script), otherwise text is measured with fallback font
-        // metrics and gets clipped at node edges once DM Sans applies.
         startOnLoad: false,
         theme: 'base',
         themeVariables: mkVars,
         securityLevel: 'loose',
-        fontFamily: '"DM Sans", ui-sans-serif, sans-serif',
+        fontFamily: '"Inter", ui-sans-serif, sans-serif',
         flowchart: { curve: 'basis', padding: 20 },
         sequence: { mirrorActors: false, bottomMarginAdj: 2, actorFontSize: 14, noteFontSize: 13, messageFontSize: 13 }
       });

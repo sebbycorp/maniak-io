@@ -4,27 +4,22 @@
 {{ $recent := first 6 (after 1 $articles) }}
 {{ $catCount := len .Site.Taxonomies.categories }}
 
-{{ $red := slice "AI" "AI & Agents" "Agents" }}
-{{ $ink := slice "Kubernetes" "Infrastructure" "Networking" }}
+{{ $hot := slice "AI" "AI & Agents" "Agents" }}
+{{ $cool := slice "Kubernetes" "Infrastructure" "Networking" }}
 
 <!-- ============ HERO ============ -->
 <section class="mk-hero">
-  <div class="mk-hero-rings mk-pulse"></div>
-  <div class="mk-hero-rings mk-hero-rings-red"></div>
   <div class="mk-wrap mk-hero-inner">
-    <div class="mk-eyebrow"><span class="mk-eyebrow-dot"></span>Field notes — cloud &amp; AI infrastructure</div>
-    <h1 class="mk-hero-title">Technology.<br>Strategy.<br><span class="mk-red">Intelligence.</span></h1>
-    <p class="mk-hero-lede">{{ .Site.Params.author }} on running AI agents in production — agentgateway, kagent, MCP, A2A, and the Kubernetes plumbing that keeps them fast, observable, and safe.</p>
+    <h1 class="mk-hero-title">
+      Notes on Infrastructure
+      <span class="mk-hero-topics">
+        <span>AI</span><span class="mk-hero-topics-sep">|</span><span>Cloud</span><span class="mk-hero-topics-sep">|</span><span>Security</span><span class="mk-hero-topics-sep">|</span><span>Networking</span>
+      </span>
+    </h1>
+    <p class="mk-hero-lede">Field notes and practical guides from {{ .Site.Params.author }} — gateways, agents, Kubernetes, and the systems that keep production running.</p>
     <div class="mk-hero-cta">
-      <a href="{{ "articles/" | relURL }}" class="mk-btn mk-btn-red">Browse all articles →</a>
-      <a href="{{ .Site.Params.youtubeChannel }}" target="_blank" rel="noopener" class="mk-btn mk-btn-ghost">Watch on YouTube</a>
-    </div>
-    <div class="mk-stats">
-      <div class="mk-stat"><div class="mk-stat-num">{{ len $articles }}</div><div class="mk-stat-label">ARTICLES</div></div>
-      <div class="mk-stat-div"></div>
-      <div class="mk-stat"><div class="mk-stat-num">{{ $catCount }}</div><div class="mk-stat-label">TOPICS</div></div>
-      <div class="mk-stat-div"></div>
-      <div class="mk-stat"><div class="mk-stat-num mk-red">∞</div><div class="mk-stat-label">MCP · A2A · K8S</div></div>
+      <a href="{{ "articles/" | relURL }}" class="mk-btn mk-btn-red">Browse articles</a>
+      <a href="{{ .Site.Params.youtubeChannel }}" target="_blank" rel="noopener" class="mk-btn mk-btn-ghost">YouTube</a>
     </div>
   </div>
 </section>
@@ -32,21 +27,18 @@
 <!-- ============ FEATURED ============ -->
 {{ with $featured }}
 {{ $cat := "" }}{{ with .Params.categories }}{{ $cat = index . 0 }}{{ end }}
-{{ $color := "#C79200" }}{{ if in $red $cat }}{{ $color = "#E5341F" }}{{ else if in $ink $cat }}{{ $color = "#17181C" }}{{ end }}
 <section class="mk-wrap mk-section-featured">
-  <div class="mk-kicker"><span class="mk-kicker-bar"></span>FEATURED</div>
+  <div class="mk-kicker"><span class="mk-kicker-bar"></span>Featured</div>
   <a href="{{ .Permalink }}" class="mk-featured">
-    <div class="mk-featured-rings"></div>
-    <div class="mk-featured-rings mk-featured-rings-red"></div>
     <div class="mk-featured-body">
       <div class="mk-featured-meta">
-        <span class="mk-badge-new">NEW</span>
-        <span class="mk-featured-cat"><span class="mk-dot mk-dot-red"></span>{{ $cat }}</span>
+        <span class="mk-badge-new">New</span>
+        {{ with $cat }}<span class="mk-featured-cat"><span class="mk-dot mk-dot-red"></span>{{ . }}</span>{{ end }}
         <span class="mk-featured-date">{{ .Date.Format "02 Jan 2006" }}</span>
       </div>
       <h2 class="mk-featured-title">{{ .Title }}</h2>
       <p class="mk-featured-excerpt">{{ .Summary | plainify | truncate 220 }}</p>
-      <span class="mk-featured-link">Read the article →</span>
+      <span class="mk-featured-link">Read article →</span>
     </div>
   </a>
 </section>
@@ -68,7 +60,7 @@
   <h2 class="mk-section-title mk-mb">Browse by topic</h2>
   <div class="mk-topics">
     {{ range $name, $taxo := .Site.Taxonomies.categories }}
-    {{ $color := "#C79200" }}{{ if in $red $taxo.Page.Title }}{{ $color = "#E5341F" }}{{ else if in $ink $taxo.Page.Title }}{{ $color = "#17181C" }}{{ end }}
+    {{ $color := "#71717A" }}{{ if in $hot $taxo.Page.Title }}{{ $color = "#3F6212" }}{{ else if in $cool $taxo.Page.Title }}{{ $color = "#1D4ED8" }}{{ end }}
     <a href="{{ $taxo.Page.Permalink }}" class="mk-topic">
       <span class="mk-topic-label"><span class="mk-topic-bar" style="background:{{ $color }};"></span>{{ $taxo.Page.Title }}</span>
       <span class="mk-topic-count">{{ $taxo.Count }}</span>

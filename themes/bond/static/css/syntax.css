@@ -1,19 +1,18 @@
-/* Syntax highlighting - Nord-inspired for dark, soft for light */
+/* Syntax highlighting — Noir Signal */
 
-/* --- Code highlighting on warm-paper editorial theme --- */
-.mk-prose .highlight { border-radius: 14px; overflow: hidden; border: 1px solid #1C1E25; }
+.mk-prose .highlight { border-radius: 6px; overflow: hidden; border: 1px solid #27272A; }
 .mk-prose .highlight pre.chroma { margin: 0; border: none; border-radius: 0; }
 .highlight pre {
-  background: #17181C !important;
-  color: #d8dee9;
+  background: #050506 !important;
+  color: #d4d4d8;
 }
 
 .highlight pre code {
-  color: #d8dee9 !important;
+  color: #d4d4d8 !important;
 }
 
-/* Background */       .bg { background-color: #17181C; }
-/* PreWrapper */       .chroma { background-color: #17181C; color: #d8dee9; }
+/* Background */       .bg { background-color: #050506; }
+/* PreWrapper */       .chroma { background-color: #050506; color: #d4d4d8; }
 /* Error */            .chroma .err { color: #bf616a; }
 /* LineHighlight */    .chroma .hl { background-color: #23252e; }
 /* LineNumbers */      .chroma .ln { color: #616e88; }

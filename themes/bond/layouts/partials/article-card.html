@@ -1,10 +1,10 @@
 {{/* Editorial article card. Pass a Page as the context. */}}
 {{- $p := . -}}
-{{- $red := slice "AI" "AI & Agents" "Agents" -}}
-{{- $ink := slice "Kubernetes" "Infrastructure" "Networking" -}}
+{{- $hot := slice "AI" "AI & Agents" "Agents" -}}
+{{- $cool := slice "Kubernetes" "Infrastructure" "Networking" -}}
 {{- $cat := "" -}}{{- with $p.Params.categories }}{{ $cat = index . 0 }}{{ end -}}
-{{- $color := "#C79200" -}}
-{{- if in $red $cat }}{{ $color = "#E5341F" }}{{ else if in $ink $cat }}{{ $color = "#17181C" }}{{ end -}}
+{{- $color := "#71717A" -}}
+{{- if in $hot $cat }}{{ $color = "#3F6212" }}{{ else if in $cool $cat }}{{ $color = "#1D4ED8" }}{{ end -}}
 {{- $tags := slice -}}{{- range $p.Params.tags }}{{ $tags = $tags | append (lower .) }}{{ end -}}
 {{- $excerpt := $p.Summary | plainify | truncate 160 -}}
 {{- $search := lower (printf "%s %s %s %s" $p.Title $excerpt $cat (delimit ($p.Params.tags | default slice) " ")) -}}
