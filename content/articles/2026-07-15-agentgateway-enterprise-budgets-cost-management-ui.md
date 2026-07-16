@@ -1,22 +1,22 @@
 ---
-title: "Budgets You Can See: LLM Cost Governance in the Enterprise AgentGateway UI"
+title: "Budgets You Can See: LLM Cost Governance in the Enterprise agentgateway UI"
 date: 2026-07-15
-description: "A tour of the Cost Management → Budgets experience in Solo Enterprise for AgentGateway — per-team and per-user token budgets, rolling windows, On track / Over budget status, and the Audit vs Block enforcement model, all readable at a glance in the console."
+description: "A tour of the Cost Management → Budgets experience in solo enterprise for agentgateway — per-team and per-user token budgets, rolling windows, On track / Over budget status, and the Audit vs Block enforcement model, all readable at a glance in the console."
 ---
 
 A couple of weeks ago I wrote up [AI budgets and hard spend limits in Enterprise
-AgentGateway](/articles/2026-07-02-agentgateway-ai-budgets-hard-spend-limits/)
+agentgateway](/articles/2026-07-02-agentgateway-ai-budgets-hard-spend-limits/)
 — a day-one, YAML-and-`curl` field report on the new `EnterpriseAgentgatewayBudget`
 CRD. That post answered *how do I declare a budget and watch it trip?*
 
 This one answers the question the platform lead actually asks at standup: **which
 teams are on track, and who's blown their allocation?** Because the same budgets
-you declare in YAML now surface as a first-class view in the Solo Enterprise for
-AgentGateway console — under **Cost Management → Budgets** — where spend is
+you declare in YAML now surface as a first-class view in the solo enterprise for
+agentgateway console — under **Cost Management → Budgets** — where spend is
 something you *read*, not something you `kubectl get` and squint at.
 
 This is a tour of that experience. Everything below is a live lab: a management
-cluster running Solo Enterprise for AgentGateway, three teams (platform, sales,
+cluster running solo enterprise for agentgateway, three teams (platform, sales,
 marketing) with per-user and per-team token budgets, and enough traffic driven
 through the gateway to push one of them over the edge on purpose.
 
@@ -26,7 +26,7 @@ Cost Management is where the gateway's per-request cost telemetry rolls up. The
 **Budgets** tab lists every budget selected by an active gateway
 budget-enforcement policy, with a one-line health readout for each.
 
-![Solo Enterprise for agentgateway Cost Management Budgets tab showing five budgets — budget-demo, cost-hierarchy, team-budget-marketing, team-budget-platform, and team-budget-sales — each with its scope, entry count, summary, and a usage bar. The summary chips at top read 5 Budgets, 4 Within budget, 1 Exceeding budget.](/images/articles/2026-07-15-agentgateway-enterprise-budgets-ui/budgets-list.png)
+![solo enterprise for agentgateway Cost Management Budgets tab showing five budgets — budget-demo, cost-hierarchy, team-budget-marketing, team-budget-platform, and team-budget-sales — each with its scope, entry count, summary, and a usage bar. The summary chips at top read 5 Budgets, 4 Within budget, 1 Exceeding budget.](/images/articles/2026-07-15-agentgateway-enterprise-budgets-ui/budgets-list.png)
 
 Three things are worth reading here:
 
