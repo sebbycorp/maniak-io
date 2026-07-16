@@ -4,7 +4,7 @@ title = "Sebastian Maniak"
 theme = "bond"
 
 [params]
-  description = "Technology. Strategy. Intelligence."
+  description = "Practical guides for running AI agents in production."
   author = "Sebastian Maniak"
   youtubeChannel = "https://www.youtube.com/@sebbycorp"
   twitterHandle = "sebbycorp"
@@ -43,6 +43,10 @@ theme = "bond"
     noClasses = false
     lineNos = false
     guessSyntax = true
+  [markup.tableOfContents]
+    startLevel = 2
+    endLevel = 3
+    ordered = false
 
 [taxonomies]
   tag = "tags"
