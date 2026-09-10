@@ -22,7 +22,7 @@ author: "Sebastian Maniak"
 ---
 
 Most of what I've written about [agentgateway](https://agentgateway.dev)
-assumes Kubernetes. That's still the right home for it in production.
+assumes Kubernetes.
 <br>
 This post is the Nutanix version of that sentence:
 [Solo Enterprise for agentgateway](https://docs.solo.io/agentgateway/standalone/latest/)
