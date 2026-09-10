@@ -28,8 +28,13 @@ What we're building is
 [Solo Enterprise for agentgateway](https://docs.solo.io/agentgateway/standalone/latest/)
 in **standalone mode**, running on infrastructure you already own:
 **Nutanix Kubernetes Platform (NKP)** for anything real, and an AHV guest
-only if what you want is a lab. One process per replica, one config file
-as the baseline, no enterprise control plane, and no custom resources.
+only if what you want is a lab.
+
+- One process per replica
+- One config file as the baseline
+- No enterprise control plane
+- No custom resources
+
 You get the same enterprise features as Kubernetes mode — high
 availability just comes from running several replicas against a shared
 PostgreSQL, rather than from a second product you have to invent.
