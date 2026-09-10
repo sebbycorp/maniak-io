@@ -14,6 +14,7 @@ tags:
   - NKP
   - Helm
   - HA
+  - failover
   - PostgreSQL
   - AHV
   - Docker
@@ -301,28 +302,43 @@ traffic: the Nutanix load balancer, MetalLB, or Ingress. Health-check the
 **gateway** port (Service 80 / container 4000). Do not health-check
 15000 from the network.
 
-### What failover actually is
+### What failover actually is (two layers)
 
 I am going to be boring on purpose, because this is where integration
-posts start inventing features.
+posts start inventing features. HA here is two different jobs. Do not
+collapse them.
 
-What you have:
+**Layer 1 — the process stays up.** Three replicas. Kubernetes
+reschedules a dead pod. The Service endpoints drop an unready pod. The
+LB in front should stop sending it work once the health check fails. In
+`database` mode every replica reads the same Postgres overlay, so a UI
+change is not trapped on the pod you happened to hit. A rolling
+`helm upgrade` can still **blip** if you only have capacity for two of
+three, or if Postgres hiccups. That is a Deployment, not a promise of
+zero-downtime sessions.
 
-- **Three processes.** Kubernetes reschedules a dead pod. The Service
-  endpoints drop an unready pod. The LB in front should stop sending it
-  work once the health check fails.
-- **One shared overlay.** In `database` mode every replica reads the same
-  Postgres. A UI change is not trapped on the pod you happened to hit.
-- **A rolling upgrade.** `helm upgrade` replaces pods. If you only have
-  capacity for two of three during the roll, or if Postgres blips, expect
-  a **brief disruption**. That is a Deployment, not a promise of
-  zero-downtime sessions.
+What Solo does **not** claim for this layer, so I will not either: a
+special active-active dataplane, shared in-memory session state across
+replicas, or "the gateway never drops an in-flight MCP session if a pod
+dies." Clients retry. Size `replicaCount` so a roll still leaves a Ready
+pod. Keep Postgres on a disk that survives a reschedule.
 
-What Solo does **not** claim here, so I will not either: a special
-active-active dataplane, shared in-memory session state across replicas,
-or "the gateway never drops an in-flight MCP session if a pod dies."
-Clients retry. Size `replicaCount` so a roll still leaves a Ready pod.
-Keep Postgres on a disk that survives a reschedule.
+**Layer 2 — the model stays up.** That is LLM-level failover, and it
+lives on the Models page as **virtual models** with a **failover** badge
+and stacked priorities / targets. The client asks for one name (`claude`,
+`grok`, `openai`, `bedrock`, …). The gateway walks the priority list
+when a provider or a concrete model is sick. That is HA for the
+*inference path*, not a second Kubernetes controller. It is the layer
+you actually feel when Anthropic 500s and the next target answers.
+
+![Models with virtual failover](/images/articles/2026-09-10-solo-enterprise-agentgateway-nutanix/01-models-virtual-failover.jpeg)
+
+File models in that shot are pinned providers (Anthropic, xAI, a custom
+Qwen, …). The virtual rows — `claude`, `grok`, `fable`, `openai`,
+`mixed`, `bedrock`, `mistral` — show the failover badge and
+multi-priority, multi-target columns. That is the production shape I
+want on NKP: replicas so the *proxy* survives a node, virtual models so
+the *call* survives a provider.
 
 Admin `:15000` stays inside the pod. For a license or storage check:
 
@@ -381,6 +397,35 @@ kubectl get pods -n agentgateway-system \
 If pods crash and logs mention the license, fix the Secret before you
 debug MetalLB. If pods are Ready and `curl` to the VIP fails, it is the
 LB or the VLAN, not agentgateway.
+
+### Logs and Analytics — prove traffic, not just pods
+
+`kubectl get pods` tells you the process is scheduled. The UI tells you
+the gateway is actually doing the job: every provider in one log stream,
+latency and cost on the same row, Analytics rolled up across the fleet.
+That is why the Helm path uses PostgreSQL — Solo will not share one
+SQLite file across replicas, and these pages are what that database is
+*for*.
+
+Logs across Anthropic, OpenAI, Bedrock, and xAI, same screen, same
+window. Haiku, GPT-4o / 4o-mini, Nova Micro, Grok — one table, not four
+vendor consoles.
+
+![Logs across Anthropic, OpenAI, Bedrock, and xAI](/images/articles/2026-09-10-solo-enterprise-agentgateway-nutanix/02-logs-multi-provider.jpeg)
+
+Scroll the same page and you get duration, tokens, cache, and cost
+including the rows that failed (a `gpt-6-astra` 400 is still a line
+item at $0). That is the receipt you hand finance.
+
+![Logs with latency and cost](/images/articles/2026-09-10-solo-enterprise-agentgateway-nutanix/03-logs-costs-latency.jpeg)
+
+Analytics is the roll-up. This window is about **$85.56 / 50.8M tokens /
+468 calls** on a September afternoon. If you are on one VM with
+SQLite, you are looking at that box. If you are on NKP with
+`replicaCount: 3` and shared Postgres, you are looking at the
+deployment.
+
+![Analytics cost chart](/images/articles/2026-09-10-solo-enterprise-agentgateway-nutanix/04-analytics-cost.jpeg)
 
 ## Lab path: one AHV VM + Docker (not HA)
 
