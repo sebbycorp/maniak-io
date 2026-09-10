@@ -1,8 +1,8 @@
 ---
-title: "How To: Deploy Solo Enterprise for agentgateway Standalone on Nutanix — AHV VM, Docker Compose, UI on :4000"
+title: "Integration: Deploy Solo Enterprise for agentgateway on Nutanix with HA — NKP, Helm, and PostgreSQL"
 date: 2026-09-10
 draft: false
-description: "Put Solo Enterprise for agentgateway on a Nutanix AHV VM without a control plane or custom resources — and do not confuse it with Nutanix’s own Agent Gateway in Nutanix Enterprise AI. Standalone mode is one process and one config file, available in the latest stream starting 2026.9.0. Primary path: AHV + Docker Compose mapped 1:1 to Solo’s Docker docs (Prism sizing, VLAN, /config, license in .env, UI on :4000). Secondary: NKP + the public enterprise-agentgateway-standalone Helm chart (OCI, v2026.9.0, license Secret, LoadBalancer 80→4000). Includes smoke tests and the mistakes that stop the proxy before it binds a port."
+description: "An integration how-to for Solo Enterprise for agentgateway in standalone mode on Nutanix. The production path is NKP plus the public enterprise-agentgateway-standalone Helm chart (v2026.9.0), replicaCount 3, mode database, and PostgreSQL so every pod shares the same ConfigMap baseline and the same UI overlay — not one SQLite file. Covers the license Secret, LoadBalancer 80→4000 behind a Nutanix LB or Ingress, honest failover, TLS in front, smoke tests, an optional single-node AHV + Docker lab, and a 2–3 VM AHV pattern with a shared VIP and Postgres. Pin 2026.9.0. No control plane required."
 categories:
   - AI
   - LLM
@@ -11,125 +11,105 @@ tags:
   - agentgateway
   - Solo Enterprise
   - Nutanix
+  - NKP
+  - Helm
+  - HA
+  - PostgreSQL
   - AHV
   - Docker
-  - Helm
-  - NKP
   - standalone
 author: "Sebastian Maniak"
 ---
 
 Most of what I've written about [agentgateway](https://agentgateway.dev)
-assumes Kubernetes. That's still the right home when you want GitOps, Gateway
-API objects, and a control plane that licenses a fleet of proxies.
+assumes Kubernetes. That's still the right home for it in production.
 <br>
-This post is the other shape: **one Nutanix AHV virtual machine**, Docker
-Engine plus Compose, and
+This post is the Nutanix version of that sentence:
 [Solo Enterprise for agentgateway](https://docs.solo.io/agentgateway/standalone/latest/)
-in **standalone mode**. One process. One config file. No control plane. No
-custom resources. The same enterprise features as Kubernetes mode, on a VM
-your Prism operators already know how to size, VLAN, and back up.
+in **standalone mode**, integrated onto infrastructure you already run —
+**Nutanix Kubernetes Platform (NKP)** first, an AHV guest only if you want
+a lab. One process per replica. One config file as the baseline. No
+enterprise control plane. No custom resources. The same enterprise
+features as Kubernetes mode, with HA coming from replicas plus a shared
+PostgreSQL, not from a second product you have to invent.
 
 <br>
-I'm pinning **2026.9.0** — that's the latest-stream release that
+I'm pinning **2026.9.0** / **v2026.9.0** — the latest-stream release that
 [adds standalone mode](https://docs.solo.io/agentgateway/standalone/latest/release-notes/release-notes/).
 Current LTS streams are Kubernetes-mode only. Stay on latest until the next
 LTS (Solo has that around October).
 
 <br>
-The Nutanix bits below are **my recommendations**, not a Solo–Nutanix joint
-guide. There isn't one. The proxy install, image, Helm chart, ports, and
-license rules are from Solo's public standalone docs. If a command
-disagrees with this page later, believe
+The Nutanix layout below is **how I would integrate it**, not a Solo–Nutanix
+joint guide. There isn't one. Image, chart, license, storage, and ports
+come from Solo's public standalone docs. If a command disagrees with this
+page later, believe
 [docs.solo.io](https://docs.solo.io/agentgateway/standalone/latest/).
 
-## This is not Nutanix Agent Gateway
-
-Nutanix has its own product named **Nutanix Agent Gateway**, part of
-**Nutanix Enterprise AI**. That is a different stack: different binary,
-different license, different docs.
-
-This post is **Solo Enterprise for agentgateway** running *on* Nutanix
-infrastructure (AHV first, NKP second). Same word in the search box. Not
-the same product. If you opened a Nutanix Enterprise AI page after typing
-"agentgateway nutanix," you're in the wrong building — come back here, or
-go to
-[Solo's standalone docs](https://docs.solo.io/agentgateway/standalone/latest/).
-
-When you're done, one AHV VM serves the Solo enterprise UI on the gateway
-port:
+When the production path is up, clients hit one VIP and the cluster holds
+more than one proxy:
 
 | Address | Who uses it | Notes |
 |---------|-------------|-------|
-| `http://<vm-ip>:4000/ui` | You, in a browser | Generated config attaches the UI to the `default` gateway |
-| `http://<vm-ip>:4000/...` | Apps, `curl`, IDEs | Same gateway; add routes and policies in the UI or the file |
-| `:15000` on the VM | Nobody from the network | Admin is container loopback. Publishing it does not expose the UI |
+| `https://<vip>/ui` | You, in a browser | TLS on the Nutanix LB / Ingress; backend is gateway **4000** (Service maps **80 → 4000**) |
+| `https://<vip>/...` | Apps, `curl`, IDEs | Same Service. Add routes and policies in Helm values or the UI overlay |
+| `:15000` | Operators on a port-forward | Admin is loopback inside each pod. Not the front door |
 
 ## Before you start
 
-You need four things:
+You need:
 
 - A **Solo Enterprise for agentgateway license key**. The proxy
   [refuses to start](https://docs.solo.io/agentgateway/standalone/latest/setup/license/)
-  without a valid one. If you don't have a key, talk to your Solo account
-  team. This how-to uses the placeholder `<license-key>` everywhere.
-- **Prism** access to create an AHV VM on a VLAN your clients can reach (or
-  that a load-balancer VIP can reach).
-- An **Ubuntu 22.04 / 24.04** or RHEL-like guest. I use Ubuntu below because
-  Docker Engine's install is boring there. The Compose file is the same on
-  either.
-- A place to keep the license that is **not git**. A `.env` file on the VM,
-  mode `600`, owned by the user who runs Compose.
+  without a valid one. Placeholder everywhere below: `<license-key>`.
+- **NKP** (or any Kubernetes NKP is wrapping) if you want the production
+  path: `kubectl`, `helm`, and a StorageClass that can back PostgreSQL.
+- A **PostgreSQL** you are willing to keep. Solo is explicit: more than one
+  replica means PostgreSQL, not a shared SQLite file. Production means a
+  **PersistentVolumeClaim or a managed instance**, not `emptyDir`.
+- A place for the license that is **not git** — a Kubernetes Secret on NKP,
+  or a `600` `.env` on an AHV lab VM.
 
-You do **not** need NKP, Helm, or a private image pull secret. The enterprise
-image lives on a
-[public registry](https://docs.solo.io/agentgateway/standalone/latest/setup/install/docker/).
+The enterprise image and the standalone chart sit on a
+[public registry](https://docs.solo.io/agentgateway/standalone/latest/setup/install/helm/).
+No pull credentials unless you mirrored them.
 
 ## What standalone mode is
 
 [Standalone mode](https://docs.solo.io/agentgateway/standalone/latest/about/introduction/)
-is a single agentgateway process that reads one configuration file. You
-install it as a
+is the agentgateway process plus one configuration file. You install it as
+a
 [binary](https://docs.solo.io/agentgateway/standalone/latest/setup/install/binary/),
 a
 [Docker container](https://docs.solo.io/agentgateway/standalone/latest/setup/install/docker/),
 or a
 [Helm Deployment](https://docs.solo.io/agentgateway/standalone/latest/setup/install/helm/)
 that does **not** install a control plane. The chart is
-`enterprise-agentgateway-standalone` on Solo's public OCI registry, pinned
-below to **v2026.9.0**.
+`enterprise-agentgateway-standalone`. Pin **v2026.9.0**.
 
 | | Standalone (this post) | Kubernetes mode |
 |--|------------------------|-----------------|
-| What runs | One proxy process | Control plane + proxies |
-| Source of truth | A config file you mount or generate | Enterprise CRs + Gateway API |
-| License | **Each proxy** holds its own key (`ENTERPRISE_AGENTGATEWAY_LICENSE_KEY` or `config.license.key.file`) | The control plane holds the key and licenses the proxies it manages |
-| Where it fits on Nutanix | AHV VM with Docker, or an NKP Deployment with the standalone chart | NKP (or any cluster) when you want GitOps and CRs |
+| What runs | Proxy process (scale with `replicaCount`) | Control plane + proxies |
+| Source of truth | Config file (Helm: ConfigMap) plus optional Postgres overlay | Enterprise CRs + Gateway API |
+| License | **Each proxy** holds its own key | The control plane holds the key |
+| HA on Nutanix | NKP replicas + shared PostgreSQL + an LB | Same cluster, different charts |
 
-Same enterprise features and support either way. Different operational
-model. Don't follow Kubernetes-mode pages for this VM — they talk about
-charts and CRs this process will never see. Stay in the
+Same enterprise features either way. Different operational model. Don't
+follow Kubernetes-mode pages for this install — those charts and CRs are
+not what this process reads. Stay in the
 [standalone docs](https://docs.solo.io/agentgateway/standalone/latest/).
 
-## Why an AHV VM, not NKP, for the first box
+## Two paths, one product
 
-Solo's Docker standalone path is "mount `/config`, pass the license, publish
-**4000**." That maps 1:1 onto an AHV guest. Prism gives you the VM, the NIC,
-the VLAN, and a disk that survives a reboot. Compose gives you the restart
-policy. You are not translating Helm values into NKP storage classes just to
-open a UI.
+| Path | Use it when | HA? |
+|------|-------------|-----|
+| **NKP + standalone Helm + PostgreSQL** (recommended) | Production, or anything you will still care about after a node reboot | Yes — `replicaCount: 3` (or 2+), shared Postgres, LB in front |
+| **AHV VM + Docker Compose** | A lab, a first look, a laptop-shaped box in Prism | **No.** One VM is one failure domain |
+| **2–3 AHV VMs + VIP + shared Postgres** | You want HA and you do not have NKP yet | Yes, if every instance points at the **same** PostgreSQL and the VIP health-checks **4000** |
 
-Pick **NKP + standalone Helm** instead when the VM would be a pet you don't
-want: you already operate the cluster, you want a Service in front, and
-you're fine managing the file through Helm values. That secondary path is
-spelled out later with the exact chart OCI and `v2026.9.0` install. Pick
-**Kubernetes mode** (not this post) when you want the control plane,
-Gateway API, and CRs — that's a different install and a different license
-path.
+I run production on NKP. The VM is how I prove the image starts.
 
-I still start on the VM. You can move the same `config.yaml` later.
-
-## The shape of it
+## The shape of production
 
 ```mermaid
 flowchart LR
@@ -138,318 +118,102 @@ flowchart LR
     App[App / curl / IDE]
   end
 
-  subgraph nutanix [Nutanix AHV]
-    VIP["VLAN / floating IP / LB VIP"]
-    GW["agentgateway-enterprise :4000"]
-    Disk[("/config → config.yaml + SQLite")]
-    Admin["admin :15000 loopback only"]
+  subgraph edge [Nutanix edge]
+    TLS["LB / Ingress :443"]
   end
 
-  Browser -->|http :4000/ui| VIP
-  App -->|http :4000| VIP
-  VIP --> GW
-  GW --- Disk
-  GW -.-> Admin
+  subgraph nkp [NKP]
+    SVC["Service LoadBalancer 80 → 4000"]
+    P1["agentgateway replica 1"]
+    P2["agentgateway replica 2"]
+    P3["agentgateway replica 3"]
+    CM["ConfigMap baseline"]
+    PG[("PostgreSQL overlay + logs")]
+  end
+
+  Browser -->|HTTPS| TLS
+  App -->|HTTPS| TLS
+  TLS --> SVC
+  SVC --> P1
+  SVC --> P2
+  SVC --> P3
+  P1 --- CM
+  P2 --- CM
+  P3 --- CM
+  P1 --- PG
+  P2 --- PG
+  P3 --- PG
 ```
 
-Two rules to keep in your head:
-
-1. **Publish 4000, not 15000.** The generated config attaches the UI to the
-   `default` gateway. The admin interface stays on the container's own
-   loopback. Mapping host `15000:15000` does not make `/ui` reachable, and
-   it is not the supported path. Solo is explicit about this in the
-   [Docker install](https://docs.solo.io/agentgateway/standalone/latest/setup/install/docker/).
-2. **The license is not optional.** Open source agentgateway starts with no
-   key. This image does not. A container that exits immediately almost
-   always failed the license check.
-
-## Step 1: create the AHV VM
-
-In **Prism Element** (or Prism Central): create a VM on the cluster and
-subnet you actually want clients on.
-
-Guest OS I use:
-
-- **Ubuntu 22.04 or 24.04** — copy-paste Docker install below.
-- **RHEL-like** — same Compose file; install Docker Engine from Docker's
-  RHEL instructions instead of `get.docker.com`.
-
-Sizing is **a starting point**, not a Solo sizing guide and not a Nutanix
-best-practice worksheet. Bump it when the UI, SQLite, and your real traffic
-ask for it.
-
-| Role | vCPU | RAM | Disk | Notes |
-|------|------|-----|------|-------|
-| Lab / first look | 2 | 4 GiB | 40 GiB OS | Enough to pull the image, generate config, and click around |
-| Light production | 4 | 8 GiB | 80 GiB OS + a separate volume for `/config` | Give `/config` its own vDisk so you can snapshot it independently |
-
-Connect a NIC on the **VLAN/subnet** clients (or the load balancer) will
-use. Attach Nutanix Guest Tools if that's how you do IP and disk ops in
-this cluster. Power on, SSH in as a user who can `sudo`.
-
-## Step 2: networking you actually need
-
-Standalone agentgateway is one listening socket on **4000/tcp** for the
-generated config. Plan the path to that port before you install Docker.
-
-| Piece | What I do on Nutanix |
-|-------|----------------------|
-| VLAN / subnet | Put the VM on a subnet your operators and apps can route to. Don't hide the first lab behind a jump host unless you have to — you'll spend the afternoon debugging "UI won't load" that is just routing. |
-| How clients find it | A stable VM IP is enough for a lab. For anything shared, put a **floating IP** or a **load-balancer VIP** in front and point people at the VIP. |
-| Firewall / security policy | Allow **4000/tcp** from the clients that should reach the gateway. If you terminate TLS on a reverse proxy or Nutanix load balancer in front, also allow **443/tcp** to *that* front door — the VM can stay on 4000 on the inside. |
-| What not to open | **15000/tcp** from the network. You don't need it, and publishing it from Docker still doesn't put the authenticatable UI there. |
-
-Write down the address you'll hand people. That's `<vm-ip>` in every curl
-below — the guest IP, or the VIP if you put one in front.
-
-## Step 3: install Docker Engine and Compose
-
-On Ubuntu, the fastest path that matches Solo's Docker docs is Docker's
-convenience script, then your user in the `docker` group:
-
-```sh
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker "$USER"
-# log out and back in so the group sticks
-docker version
-docker compose version
-```
-
-Confirm `docker compose` (plugin) works. The rest of this post uses
-`docker compose`, not the old `docker-compose` binary.
-
-Create a directory that will hold the Compose file, the env file, and the
-persistent config mount:
-
-```sh
-mkdir -p ~/enterprise-agentgateway/agentgateway-config
-cd ~/enterprise-agentgateway
-```
-
-That `agentgateway-config` directory is the disk. Treat it like one.
-
-## Step 4: license in `.env`, never in git
-
-Export is fine for a five-minute trial. On a VM you will reboot, put the
-key in a `.env` file next to Compose. Compose reads
-`${ENTERPRISE_AGENTGATEWAY_LICENSE_KEY}` from the shell or from that file —
-that's how
-[Solo's Compose example](https://docs.solo.io/agentgateway/standalone/latest/setup/install/docker/)
-is written.
-
-```sh
-cd ~/enterprise-agentgateway
-cat > .env <<'EOF'
-ENTERPRISE_AGENTGATEWAY_LICENSE_KEY=<license-key>
-EOF
-chmod 600 .env
-```
-
-Replace `<license-key>` with the real key. Do not commit `.env`. Do not
-paste the key into `compose.yaml`. Do not put it in a Prism note that gets
-screenshotted.
-
-The other official option is a file the config points at with
-`config.license.key.file`. Environment variable wins if both are set. For
-this VM I stay on the env var so the generated `config.yaml` can stay
-exactly what the image writes.
-
-## Step 5: Compose file with a writable `/config`
-
-This is Solo's Compose shape, pointed at a persistent directory on the VM.
-The `user` line must be **your** UID and GID so the container can write the
-generated config and the SQLite file. `1000:1000` is the usual first Ubuntu
-user; check with `id -u && id -g` and replace if yours differ.
-
-```yaml
-# compose.yaml
-services:
-  agentgateway:
-    container_name: agentgateway
-    restart: unless-stopped
-    image: us-docker.pkg.dev/solo-public/enterprise-agentgateway/agentgateway-enterprise:2026.9.0
-    # Replace with your user and group IDs: id -u && id -g
-    user: "1000:1000"
-    environment:
-      ENTERPRISE_AGENTGATEWAY_LICENSE_KEY: ${ENTERPRISE_AGENTGATEWAY_LICENSE_KEY}
-    ports:
-      - "4000:4000"
-    volumes:
-      - ./agentgateway-config:/config
-```
-
-That image is
-`us-docker.pkg.dev/solo-public/enterprise-agentgateway/agentgateway-enterprise:2026.9.0`
-— public, **amd64 and arm64**, no pull credentials. Do not substitute the
-open-source `cr.agentgateway.dev/agentgateway` image. That binary has no
-enterprise license check and is not this product.
-
-`--user` / `user:` is not cosmetic. Without it, a root-owned file in
-`/config` and a later run as your UID will fail writes, and the UI won't
-persist changes.
-
-Start it:
-
-```sh
-cd ~/enterprise-agentgateway
-docker compose up -d
-docker compose ps
-docker compose logs -f
-```
-
-A healthy first boot looks like Solo's documented log lines:
-
-```
-info	state_manager	loaded config from File("/config/config.yaml")
-info	state_manager	Watching config file: /config/config.yaml
-info	app	serving UI at http://localhost:4000/ui
-info	proxy::gateway	started bind	bind="bind/4000"
-```
-
-If the container is gone when you `ps`, it failed the license check. Read
-the logs, then
-[Licensing](https://docs.solo.io/agentgateway/standalone/latest/setup/license/).
-
-On first start the image generates `/config/config.yaml` and a SQLite
-database beside it. The generated file looks like this (from
-[Solo's Docker page](https://docs.solo.io/agentgateway/standalone/latest/setup/install/docker/)):
-
-```yaml
-# yaml-language-server: $schema=https://agentgateway.dev/schema/config
-config:
-  database:
-    url: sqlite:///config/data.db
-gateways:
-  default:
-    port: 4000
-ui:
-  gateways: default
-```
-
-That `config.database` block is why **Analytics** and **Logs** work. If you
-later replace this file with one you wrote by hand, add `config.database`
-yourself or those pages stay empty. Agentgateway does not backfill a
-database into a file you supplied.
-
-```sh
-cat ~/enterprise-agentgateway/agentgateway-config/config.yaml
-```
-
-Keep that directory. Snapshot the vDisk. That's your models, keys, MCP
-targets, and logs.
-
-## Step 6: open the UI
-
-From a browser that can reach the VM (or the VIP):
-
-```
-http://<vm-ip>:4000/ui
-```
-
-`<vm-ip>` is the guest address or the floating IP, not `localhost`, unless
-you are SSH-tunneled. The log line says `localhost` because that's the
-address *inside* the container.
-
-The generated config serves the UI on the gateway **without** an
-authentication policy. Fine on a private VLAN you trust. Not fine on a
-path you don't control. Before this URL is anything more than a lab,
-follow Solo's
-[Secure the UI](https://docs.solo.io/agentgateway/standalone/latest/setup/ui/secure-ui/)
-guide (OIDC on the gateway that serves `/ui`; `ui.policies` is how you
-attach it). A gateway listener is as reachable as the rest of your proxy
-traffic.
-
-## Step 7: optional TLS in front
-
-The container speaks HTTP on 4000. For HTTPS you put something in front —
-that's the usual Nutanix pattern anyway:
-
-- A **Nutanix load balancer** or **floating IP / VIP** that forwards 443 to
-  the VM's 4000.
-- NKP **Ingress** if you later move this to the cluster.
-- A small **reverse proxy** (Caddy, nginx) on the same VM or a neighbor,
-  terminating TLS and proxying to `127.0.0.1:4000` or the guest IP.
-
-Open **443/tcp** on that front door. Leave the VM's 4000 limited to the
-front door's subnet if you can. Don't try to publish `:15000` "for HTTPS" —
-wrong port, wrong interface.
-
-## Step 8: smoke test
-
-Placeholders only. This is the whole check.
-
-```sh
-VM=http://<vm-ip>:4000
-
-# 1. Container is up and bound to 4000
-docker compose ps
-# look for 0.0.0.0:4000->4000/tcp
-
-# 2. Logs name the UI on the gateway, not only admin
-docker compose logs --tail=50 | grep -E 'serving UI|started bind|license'
-# serving UI at http://localhost:4000/ui
-# started bind bind="bind/4000"
-
-# 3. UI answers on the gateway port
-curl -sI "$VM/ui" | head -5
-# expect an HTTP response from the gateway, not a connection refused
-
-# 4. Publishing 15000 is not the UI path — don't use this as your check
-curl -sS --connect-timeout 2 http://<vm-ip>:15000/ui || true
-# should fail from another host; admin is container loopback
-
-# 5. Config and SQLite landed on the persistent mount
-ls -l ~/enterprise-agentgateway/agentgateway-config
-# config.yaml and a SQLite file (data.db) should be here after first boot
-```
-
-If `compose ps` is empty, the UI times out, and logs mention the license,
-fix the key before you debug VLANs. If logs are healthy and `curl` to
-`:4000/ui` fails, it's Prism networking or the hypervisor firewall, not
-agentgateway.
-
-## Optional: same VM, binary instead of Docker
-
-If you'd rather not run a container, Solo's
-[binary install](https://docs.solo.io/agentgateway/standalone/latest/setup/install/binary/)
-is the same product. Linux **amd64** and **arm64** (macOS arm64 too; an
-Intel Mac or Windows box should use the container).
-
-```sh
-export ENTERPRISE_AGENTGATEWAY_LICENSE_KEY=<license-key>
-curl -fsSL https://run.solo.io/agentgateway/install | AGENTGATEWAY_VERSION=v2026.9.0 sh
-export PATH="$HOME/.agentgateway/bin:$PATH"
-agentgateway --version
-```
-
-The script installs `agentgateway` and `agentgateway-sts` into
-`$HOME/.agentgateway/bin`. It does **not** update your `PATH` — you do.
-Pin with `AGENTGATEWAY_VERSION=v2026.9.0` (the tag starts with `v`; the
-container tag does not). Then `agentgateway` with no `-f` generates a
-config under `~/.config/agentgateway` (or `$XDG_CONFIG_HOME/agentgateway`)
-and serves the UI at `http://<vm-ip>:4000/ui` the same way.
-
-I still prefer Compose on AHV: restart policy, one image pin, and `/config`
-on a vDisk you can snapshot without hunting a home directory.
-
-## Optional: NKP + standalone Helm
-
-AHV + Compose is still the path I would run first. Use this when the
-gateway has to live next to workloads already on **Nutanix Kubernetes
-Platform**: same standalone model (one process, one file, no control
-plane), Kubernetes just starts and exposes it.
+Two rules that do not change between lab and prod:
+
+1. **Clients use the gateway port, not 15000.** Generated Docker config
+   attaches the UI to `default` on **4000**. The Helm Service maps
+   **80 → 4000**. Admin stays on loopback inside the process. Publishing
+   15000 is not the supported UI path —
+   [Docker](https://docs.solo.io/agentgateway/standalone/latest/setup/install/docker/)
+   and
+   [Helm](https://docs.solo.io/agentgateway/standalone/latest/setup/install/helm/)
+   both say so.
+2. **The license is not optional.** A replica that cannot present
+   `ENTERPRISE_AGENTGATEWAY_LICENSE_KEY` or `config.license.key.file`
+   does not start.
+
+## Recommended production path: NKP + standalone Helm + HA
 
 This is Solo's
-[standalone Helm chart](https://docs.solo.io/agentgateway/standalone/latest/setup/install/helm/),
-not the Kubernetes-mode charts. Wrong chart → you just installed a control
-plane you didn't want, or a product that will never read your
-`config.yaml`.
+[standalone Helm chart](https://docs.solo.io/agentgateway/standalone/latest/setup/install/helm/)
+on NKP: a Deployment, no control plane, same file the binary reads. HA is
+**three replicas**, **one PostgreSQL**, and **one Service** that NKP (or
+MetalLB, or a Nutanix load balancer, or Ingress) fronts.
+
+Wrong chart — the Kubernetes-mode control-plane charts — and you installed
+a different operational model. Stay on
+`enterprise-agentgateway-standalone`.
+
+### Why PostgreSQL is not optional at this replica count
+
+[Solo's database page](https://docs.solo.io/agentgateway/standalone/latest/setup/database/)
+picks the backend from the URL: `postgres://` / `postgresql://` is
+PostgreSQL; everything else is a SQLite file.
+
+SQLite is for **one** instance. Do **not** point more than one
+agentgateway at the same SQLite file. If you do, you are sharing a file
+the product told you not to share. Give each instance its own file
+(Analytics then shows only that instance) or use PostgreSQL.
+
+For multi-replica **and** a writable UI overlay **and** Analytics /
+budgets, the chart's path is `mode: database`. That sets
+`config.storage.mode: hybrid` and `config.database.url` from
+`database.postgres.url`. Every pod reads the same ConfigMap baseline and
+the same Postgres overlay. A UI save on one replica is visible on the
+others —
+[configuration storage](https://docs.solo.io/agentgateway/standalone/latest/setup/storage/).
+
+Default chart `mode` is `readonly`. ConfigMap is mounted read-only. Save
+in the UI fails. Analytics reports that no request-log database is
+configured. Fine for a values-only lab. Not this production path.
+
+Do **not** set `config.config.database` yourself while `mode` is
+`database`. The chart derives it and overwrites you.
+
+### Postgres that survives a reschedule
+
+Solo's storage docs ship a single-instance Postgres example on
+`emptyDir` for **testing**. They also say what that means: if the
+Postgres pod restarts, the UI overlay and the logs are gone, and
+agentgateway falls back to the ConfigMap baseline.
+
+For production: **PersistentVolumeClaim or managed PostgreSQL**. Not
+`emptyDir`. I am not going to invent an operator manifest here — use
+whatever NKP already runs for stateful data, or a managed instance the
+pods can route to. The URL you hand the chart must start with
+`postgres://` or `postgresql://`.
 
 ### License Secret
 
-Keep the key out of Helm values and out of the ConfigMap the chart
-renders. Solo's documented pattern is a Secret, then
-`config.license.key.file` pointing at the mount.
+Each replica holds its own key. Keep it out of Helm values and out of
+the ConfigMap. Secret + `config.license.key.file` on the mount:
 
 ```sh
 kubectl create namespace agentgateway-system
@@ -458,9 +222,26 @@ kubectl create secret generic agentgateway-license \
   --from-literal=license-key='<license-key>'
 ```
 
-### values.yaml
+The chart has no dedicated license value.
+`extraVolumes` / `extraVolumeMounts` (or `extraEnv`) are the hooks —
+[Helm](https://docs.solo.io/agentgateway/standalone/latest/setup/install/helm/)
+and
+[Licensing](https://docs.solo.io/agentgateway/standalone/latest/setup/license/).
+
+### Production-shaped values.yaml
+
+Empty `llm` / `mcp` sections are intentional. In `hybrid` mode the file
+is a read-only baseline; the UI cannot create a missing section, only
+resources inside one that already exists. Solo documents that as
+"sections must exist in the file."
 
 ```yaml
+# values.yaml — production-shaped, placeholders only
+replicaCount: 3
+mode: database
+database:
+  postgres:
+    url: postgres://<user>:<password>@<postgres-host>:5432/<database>
 config:
   config:
     license:
@@ -469,6 +250,14 @@ config:
   gateways:
     default:
       port: 4000
+  llm:
+    providers: []
+    models: []
+    virtualModels: []
+  mcp:
+    targets: []
+  ui:
+    gateways: default
 extraVolumes:
   - name: license
     secret:
@@ -479,12 +268,9 @@ extraVolumeMounts:
     readOnly: true
 ```
 
-The chart has no dedicated license value. `extraVolumes` /
-`extraVolumeMounts` (or `extraEnv`) are how the key reaches the proxy —
-that's
-[in the Helm page](https://docs.solo.io/agentgateway/standalone/latest/setup/install/helm/)
-and
-[Licensing](https://docs.solo.io/agentgateway/standalone/latest/setup/license/).
+Keep this whole file on every `helm upgrade`. Solo warns that a value you
+leave out returns to its default — drop `mode: database` and the release
+falls back to readonly.
 
 ### Install, pinned to v2026.9.0
 
@@ -497,165 +283,351 @@ helm upgrade -i enterprise-agentgateway-standalone \
   -f values.yaml
 ```
 
-Public OCI. No private `solo-io/agentgateway-enterprise` clone. Image pull
-needs no credentials unless you pointed `image.registry` at an internal
-mirror.
+Public OCI. Image pull needs no credentials unless `image.registry`
+points at a mirror.
 
-### What the chart puts on the cluster
+```sh
+kubectl get pods -n agentgateway-system \
+  -l app.kubernetes.io/name=enterprise-agentgateway-standalone
+kubectl get svc -n agentgateway-system enterprise-agentgateway-standalone
+```
 
-From Solo's Helm page, the default release name
-`enterprise-agentgateway-standalone` creates:
+You want three Ready pods and a Service of type **LoadBalancer**, port
+**80 → 4000**. A pod in `CrashLoopBackOff` is usually the license check
+or a Postgres URL the process cannot open. Logs first.
 
-| Resource | What it's for |
-|----------|----------------|
-| Deployment | The proxy process |
-| ConfigMap `…-config` | Rendered `config.yaml`, mounted **read-only** at `/config` |
-| Service | **LoadBalancer**, port **80 → container 4000** |
-| ServiceAccount | Pod identity |
+On NKP, put that Service behind whatever you already use for north-south
+traffic: the Nutanix load balancer, MetalLB, or Ingress. Health-check the
+**gateway** port (Service 80 / container 4000). Do not health-check
+15000 from the network.
 
-No PVC. No Service for admin `:15000` (port-forward the Deployment if you
-need it). No control plane, no CRDs, no Kubernetes-mode extras (rate
-limit service, ext-auth, WAF).
+### What failover actually is
 
-On NKP, that default LoadBalancer is how clients reach the gateway —
-`http://<lb-ip>/ui` once the UI is attached to the `default` gateway in
-values, or a port-forward to `:15000/ui` for a quick look (Solo's verify
-path). Don't publish 15000 as your front door; same rule as Docker.
+I am going to be boring on purpose, because this is where integration
+posts start inventing features.
 
-A pod in `CrashLoopBackOff` is usually the license check. Logs, then
-Licensing.
+What you have:
 
-### Readonly by default — UI Save will fail
+- **Three processes.** Kubernetes reschedules a dead pod. The Service
+  endpoints drop an unready pod. The LB in front should stop sending it
+  work once the health check fails.
+- **One shared overlay.** In `database` mode every replica reads the same
+  Postgres. A UI change is not trapped on the pod you happened to hit.
+- **A rolling upgrade.** `helm upgrade` replaces pods. If you only have
+  capacity for two of three during the roll, or if Postgres blips, expect
+  a **brief disruption**. That is a Deployment, not a promise of
+  zero-downtime sessions.
 
-The chart's default `mode` is **`readonly`**: Helm values → ConfigMap →
-read-only mount. Clicking Save in the UI fails, and that is expected.
-Analytics / Logs also have no database until you add one.
+What Solo does **not** claim here, so I will not either: a special
+active-active dataplane, shared in-memory session state across replicas,
+or "the gateway never drops an in-flight MCP session if a pod dies."
+Clients retry. Size `replicaCount` so a roll still leaves a Ready pod.
+Keep Postgres on a disk that survives a reschedule.
 
-To make the UI writable, Solo switches the chart to **`database`** mode
-and stores UI edits in PostgreSQL (hybrid overlay on top of the
-ConfigMap baseline). Do **not** invent `config.storage` /
-`config.database` in values — the chart derives those from `mode` and
-overwrites them. Follow:
+Admin `:15000` stays inside the pod. For a license or storage check:
 
-- [Configuration storage](https://docs.solo.io/agentgateway/standalone/latest/setup/storage/)
-- [Database](https://docs.solo.io/agentgateway/standalone/latest/setup/database/)
-- [Helm values reference](https://docs.solo.io/agentgateway/standalone/latest/reference/helm/)
+```sh
+kubectl port-forward -n agentgateway-system \
+  deploy/enterprise-agentgateway-standalone 15000:15000
+curl -s localhost:15000/api/runtime | jq '{license, ui}'
+```
 
-If you wanted a writable file on disk, you already have that: the AHV +
-Compose path above.
+You want `license.state` of `running` and `ui.configStoreMode` of
+`hybrid`.
 
-Use **Kubernetes mode** instead of this chart when you want CRs, the
-control plane, and Gateway API. Different docs:
-[Kubernetes section](https://docs.solo.io/agentgateway/kubernetes/).
-Different license holder (the control plane, not each proxy).
+### TLS in front of the LB
 
-## What's reachable, in one table
+The chart Service is HTTP **80 → 4000**. Terminate TLS on the Nutanix
+load balancer or Ingress in front. Open **443/tcp** on that front door.
+Leave pod 4000 reachable only from the LB subnet if you can.
 
-| Address | From another host on the VLAN? |
-|---------|--------------------------------|
-| `http://<vm-ip>:4000/ui` | Yes, with the generated config (AHV + Docker) |
-| `http://<vm-ip>:4000/` (gateway traffic) | Yes, once you add routes |
-| `http://<lb-ip>/ui` | Yes, on NKP — chart Service is LoadBalancer **80 → 4000** |
-| `https://<vip>/...` | Yes, if you put TLS in front |
-| `:15000` on the VM IP | No. Loopback inside the container |
-| Host-published `15000:15000` | Still not the supported UI. Use 4000 |
+Do not publish 15000 "for HTTPS." Wrong port, wrong interface. Before
+`/ui` is on a network you do not trust, follow
+[Secure the UI](https://docs.solo.io/agentgateway/standalone/latest/setup/ui/secure-ui/).
 
-## Ten mistakes that will cost you an afternoon
+## Smoke test (production)
 
-1. **No license, or the wrong env name.** The process exits. Logs, then
+Placeholders only. `<lb>` is the VIP or Ingress hostname.
+
+```sh
+LB=https://<lb>
+
+# 1. Three replicas, Service 80 → 4000
+kubectl get pods,svc -n agentgateway-system \
+  -l app.kubernetes.io/name=enterprise-agentgateway-standalone
+
+# 2. License + hybrid storage (port-forward; admin is loopback)
+kubectl port-forward -n agentgateway-system \
+  deploy/enterprise-agentgateway-standalone 15000:15000
+curl -s localhost:15000/api/runtime | jq '{license, ui}'
+# license.state: running
+# ui.configStoreMode: hybrid
+
+# 3. UI on the gateway path, through the LB — not :15000 on the VIP
+curl -sI "$LB/ui" | head -5
+
+# 4. Admin is not the front door
+curl -sS --connect-timeout 2 https://<lb>:15000/ui || true
+
+# 5. A killed pod comes back; the Service still has endpoints
+kubectl delete pod -n agentgateway-system \
+  -l app.kubernetes.io/name=enterprise-agentgateway-standalone \
+  --field-selector=status.phase=Running --wait=false
+# delete one pod by name if you prefer a surgical check
+kubectl get pods -n agentgateway-system \
+  -l app.kubernetes.io/name=enterprise-agentgateway-standalone -w
+```
+
+If pods crash and logs mention the license, fix the Secret before you
+debug MetalLB. If pods are Ready and `curl` to the VIP fails, it is the
+LB or the VLAN, not agentgateway.
+
+## Lab path: one AHV VM + Docker (not HA)
+
+A single AHV guest maps 1:1 onto Solo's
+[Docker standalone](https://docs.solo.io/agentgateway/standalone/latest/setup/install/docker/)
+docs: mount `/config`, pass the license, publish **4000**. Useful. **Not
+HA.** The VM dies, the gateway dies. Do not put production traffic here
+and call the Nutanix cluster "the HA."
+
+### VM and network
+
+Ubuntu 22.04 / 24.04 or RHEL-like. Sizing is a **starting point**, not a
+Solo worksheet: lab 2 vCPU / 4 GiB / 40 GiB; if you keep it around, 4 /
+8 / 80 plus a vDisk for `/config`. VLAN your browser can reach. Allow
+**4000/tcp**. Do not open **15000/tcp**.
+
+```sh
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker "$USER"
+# log out and back in
+mkdir -p ~/enterprise-agentgateway/agentgateway-config
+cd ~/enterprise-agentgateway
+```
+
+### License in `.env`
+
+```sh
+cat > .env <<'EOF'
+ENTERPRISE_AGENTGATEWAY_LICENSE_KEY=<license-key>
+EOF
+chmod 600 .env
+```
+
+Do not commit it. Environment variable wins if you also set
+`config.license.key.file`.
+
+### Compose
+
+`user:` must be your UID:GID (`id -u && id -g`). Image is public,
+amd64 + arm64, tag **2026.9.0** (no leading `v` — that `v` is the
+binary/Helm version).
+
+```yaml
+# compose.yaml
+services:
+  agentgateway:
+    container_name: agentgateway
+    restart: unless-stopped
+    image: us-docker.pkg.dev/solo-public/enterprise-agentgateway/agentgateway-enterprise:2026.9.0
+    user: "1000:1000"
+    environment:
+      ENTERPRISE_AGENTGATEWAY_LICENSE_KEY: ${ENTERPRISE_AGENTGATEWAY_LICENSE_KEY}
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./agentgateway-config:/config
+```
+
+```sh
+docker compose up -d
+docker compose logs -f
+```
+
+Lines that mean it worked:
+
+```
+info	state_manager	loaded config from File("/config/config.yaml")
+info	state_manager	Watching config file: /config/config.yaml
+info	app	serving UI at http://localhost:4000/ui
+info	proxy::gateway	started bind	bind="bind/4000"
+```
+
+Generated config includes SQLite for Analytics/Logs and attaches the UI
+to `default`. A file you write yourself needs `config.database` added or
+those pages stay empty.
+
+```
+http://<vm-ip>:4000/ui
+```
+
+Same UI rule as prod: private VLAN is fine; anything else wants
+[Secure the UI](https://docs.solo.io/agentgateway/standalone/latest/setup/ui/secure-ui/).
+Optional TLS is a reverse proxy or VIP in front of **4000**, not 15000.
+
+Binary install on the same VM, if you do not want Docker:
+
+```sh
+export ENTERPRISE_AGENTGATEWAY_LICENSE_KEY=<license-key>
+curl -fsSL https://run.solo.io/agentgateway/install | AGENTGATEWAY_VERSION=v2026.9.0 sh
+export PATH="$HOME/.agentgateway/bin:$PATH"
+agentgateway --version
+```
+
+Installs `agentgateway` and `agentgateway-sts` into
+`$HOME/.agentgateway/bin`. PATH is manual.
+
+### Lab smoke test
+
+```sh
+VM=http://<vm-ip>:4000
+docker compose ps
+docker compose logs --tail=50 | grep -E 'serving UI|started bind'
+curl -sI "$VM/ui" | head -5
+curl -sS --connect-timeout 2 http://<vm-ip>:15000/ui || true
+ls -l ~/enterprise-agentgateway/agentgateway-config
+```
+
+## AHV HA without NKP: 2–3 VMs, one VIP, one Postgres
+
+If NKP is not on the table yet and a single VM is not acceptable: run
+the **same** standalone process on two or three AHV guests, put a
+**Nutanix load balancer VIP** on **4000**, and point every instance at
+**one shared PostgreSQL** in `hybrid` storage. That is the Docker/binary
+equivalent of `mode: database` + `replicaCount: 3`.
+
+Still not a Solo high-availability appliance. Same honesty as NKP: the
+VIP removes a dead backend; in-flight work on that VM is gone; Postgres
+must outlive any one guest.
+
+Do **not** put `sqlite:///config/data.db` on a shared NFS and mount it
+on three VMs. Solo: do not share one SQLite file across instances.
+
+Sketch — Compose on each VM, secrets in `.env` only:
+
+```yaml
+# config.yaml on every VM (hybrid + shared Postgres)
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+config:
+  storage:
+    mode: hybrid
+  database:
+    url: postgres://<user>:<password>@<postgres-host>:5432/<database>
+  license:
+    key:
+      file: /license/license.key
+gateways:
+  default:
+    port: 4000
+ui:
+  gateways: default
+llm:
+  providers: []
+  models: []
+  virtualModels: []
+mcp:
+  targets: []
+```
+
+```yaml
+# compose.yaml — each VM
+services:
+  agentgateway:
+    image: us-docker.pkg.dev/solo-public/enterprise-agentgateway/agentgateway-enterprise:2026.9.0
+    user: "1000:1000"
+    environment:
+      ENTERPRISE_AGENTGATEWAY_LICENSE_KEY: ${ENTERPRISE_AGENTGATEWAY_LICENSE_KEY}
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./config.yaml:/config.yaml
+      - ./license.key:/license/license.key:ro
+    command: ["-f", "/config.yaml"]
+```
+
+VIP health-checks `4000/tcp` on each guest. TLS still belongs on the
+VIP, not on 15000. Postgres on a volume or a managed instance — the same
+`emptyDir` warning applies if you hid Postgres in a container with no
+disk.
+
+## What's reachable
+
+| Address | Production (NKP) | Lab (one AHV VM) |
+|---------|------------------|------------------|
+| Gateway UI | `https://<vip>/ui` (LB 80 → 4000) | `http://<vm-ip>:4000/ui` |
+| Gateway traffic | Same VIP | Same `:4000` |
+| `:15000` on the VIP / VM IP | No | No |
+| Port-forward `15000:15000` | Debug / `api/runtime` only | Same, on the VM loopback |
+
+## Eight mistakes that will cost you an afternoon
+
+1. **No license, or the key only in git.** The process exits. Secret or
+   `.env`, then
    [Licensing](https://docs.solo.io/agentgateway/standalone/latest/setup/license/).
-   The variable is `ENTERPRISE_AGENTGATEWAY_LICENSE_KEY`. A key in
-   `compose.yaml` or a Prism screenshot will haunt you; keep it in `.env`.
-2. **Publishing 15000 and wondering where the UI went.** Admin is
-   `localhost:15000` *inside* the container. The UI you can authenticate
-   later lives on the gateway. Publish **4000**. Open
-   `http://<vm-ip>:4000/ui`.
-3. **Pulling the open-source image.**
-   `cr.agentgateway.dev/agentgateway` is not Solo Enterprise for
-   agentgateway. Use
-   `us-docker.pkg.dev/solo-public/enterprise-agentgateway/agentgateway-enterprise:2026.9.0`.
-4. **No persistent disk for `/config`.** A container without that mount
-   regenerates (or loses) `config.yaml` and the SQLite file on the next
-   recreate. Models, virtual keys, and Analytics history vanish. Mount the
-   directory. Snapshot the vDisk.
-5. **Running the container as root against a directory you'll later mount
-   as yourself.** Solo's Docker page uses
-   `--user "$(id -u):$(id -g)"` for a reason. Match `user:` in Compose to
-   `id -u` / `id -g`.
-6. **Hand-writing `config.yaml` and expecting Analytics/Logs anyway.**
-   Generated configs include `config.database`. Yours need that field added.
-   See Solo's Docker page and the database docs it links.
-7. **Following Kubernetes-mode docs on this VM.** Those pages assume a
-   control plane and CRs. You don't have either. Stay in
+2. **One SQLite file, three replicas.** Solo tells you not to. Analytics
+   lies or the file contends. `replicaCount > 1` means PostgreSQL.
+3. **`emptyDir` for production Postgres.** A reschedule wipes the UI
+   overlay and the logs. PVC or managed Postgres.
+4. **`mode: database` with `replicaCount` left at 1**, or the reverse:
+   three replicas still on `readonly` + SQLite. HA needs **both** the
+   replica count **and** shared Postgres. A `helm upgrade` that omits
+   `mode: database` snaps back to readonly.
+5. **Publishing 15000 and wondering where the UI went.** Gateway port.
+   `4000` on Docker, `80 → 4000` on the chart Service.
+6. **Calling a single AHV VM "HA"** because the Nutanix cluster has
+   other nodes. The guest is still one process on one disk.
+7. **Following Kubernetes-mode docs.** Control plane, CRs, a different
+   license holder. This post is
    [standalone](https://docs.solo.io/agentgateway/standalone/latest/).
-8. **Pinning an LTS stream and wondering why standalone isn't there.**
-   Standalone is on **latest**, starting **2026.9.0**. Current LTS is
-   Kubernetes-mode only until the next LTS (around October).
-9. **Installing Nutanix Agent Gateway.** That's Nutanix Enterprise AI.
-   This post is Solo Enterprise for agentgateway on your AHV VM or NKP
-   cluster. The names collide; the binaries do not.
-10. **Helm default `readonly` mode, then wondering why Save fails.** The
-    standalone chart mounts a ConfigMap. UI writes need the chart's
-    `database` mode and the storage/database setup Solo documents — or
-    stay on the Docker VM where `/config` is a real disk.
+8. **Pinning LTS and wondering why standalone is missing.** Latest
+   stream, starting **2026.9.0**, until the next LTS (around October).
 
 ## What this is, and isn't
 
-What you get is the enterprise proxy as one container, a generated config
-with SQLite, and a UI on port 4000. License check at start. Same features
-as Kubernetes mode, without the control plane.
+What you get on NKP: the enterprise proxy as a standalone Deployment,
+three replicas, a ConfigMap baseline, a Postgres overlay, a Service on
+80→4000, and whatever TLS you put in front. License check at start. Same
+features as Kubernetes mode, without that control plane.
 
-What you do **not** get out of this Compose file: TLS, UI login, a
-multi-node HA pair, or Prism-native "Solo on Nutanix" packaging. There is
-no official Solo↔Nutanix joint guide. You also do not get **Nutanix Agent
-Gateway** — different product. Those are the next doors — reverse proxy /
-VIP for TLS,
-[Secure the UI](https://docs.solo.io/agentgateway/standalone/latest/setup/ui/secure-ui/)
-for OIDC, NKP + the standalone Helm chart or Kubernetes mode when the VM
-is too small a box.
+What you do **not** get: a Solo-documented zero-downtime mesh, Prism
+packaging, or a joint reference architecture. Kubernetes reschedules.
+The LB drops bad backends. Rolling upgrades can blip. That is the whole
+failover story, and it is enough if Postgres and `replicaCount` are
+honest.
 
-Rotate the license material if it ever landed in a ticket or a screenshot.
-Don't commit `.env`. Don't leave an unauthenticated `/ui` on a network you
-don't trust.
+Rotate anything that landed in a ticket. Don't commit `.env` or a
+values file with a real `postgres://` password. Don't leave
+unauthenticated `/ui` on a network you do not trust.
 
 ## The takeaway
 
-The interesting part isn't Nutanix, and it isn't Docker. It's how little
-translation standalone mode needs. Solo already documented "one process,
-one file, license in the environment, UI on the gateway port." An AHV VM
-is just a place to put that file where the disk, the VLAN, and the
-snapshot already exist.
+The integration is thin on purpose. Solo already documented standalone
+mode, the public Helm chart, `mode: database`, and "do not share
+SQLite." Nutanix is where those replicas land: NKP for the Deployment,
+a load balancer you already know, and a Postgres that survives a
+reschedule.
 
-Pin `2026.9.0` / `v2026.9.0`, publish **4000**, mount `/config`, keep the
-key out of git. That's enough to open `http://<vm-ip>:4000/ui` and start
-putting LLM and MCP traffic on a proxy you actually operate. When you
-outgrow the guest, the same config idea moves to NKP — the
-`enterprise-agentgateway-standalone` chart if you still want the file,
-Kubernetes mode if you want CRs. Until then, this is the fastest path I
-know to run Solo Enterprise for agentgateway on the cluster you already
-have.
+Pin `v2026.9.0`, set `replicaCount: 3`, give every pod the same
+PostgreSQL URL, publish the gateway port, keep the license in a Secret.
+That is the production path. The AHV VM is how you learn the UI in an
+afternoon. Do not confuse the two.
 
 ---
 
 *Standalone docs home:
 [docs.solo.io/agentgateway/standalone/latest](https://docs.solo.io/agentgateway/standalone/latest/).
-Install methods (binary, Docker, Helm):
-[setup/install](https://docs.solo.io/agentgateway/standalone/latest/setup/install/).
-Docker and Compose, including why 15000 is the wrong port:
-[setup/install/docker](https://docs.solo.io/agentgateway/standalone/latest/setup/install/docker/).
-Standalone Helm chart, default LoadBalancer 80→4000, and license
-Secret / `extraVolumeMounts`:
+Helm chart, Service 80→4000, license Secret:
 [setup/install/helm](https://docs.solo.io/agentgateway/standalone/latest/setup/install/helm/).
-Readonly vs database/Postgres UI storage:
-[setup/storage](https://docs.solo.io/agentgateway/standalone/latest/setup/storage/)
-and
+`readonly` vs `database` / hybrid overlay, `replicaCount`, emptyDir
+warning:
+[setup/storage](https://docs.solo.io/agentgateway/standalone/latest/setup/storage/).
+SQLite vs PostgreSQL, "do not share one SQLite file":
 [setup/database](https://docs.solo.io/agentgateway/standalone/latest/setup/database/).
 License env and `config.license.key.file`:
 [setup/license](https://docs.solo.io/agentgateway/standalone/latest/setup/license/).
-Standalone vs Kubernetes, and why LTS is still Kubernetes-mode only:
-[introduction](https://docs.solo.io/agentgateway/standalone/latest/about/introduction/)
-and
+Docker lab (UI on 4000, admin loopback):
+[setup/install/docker](https://docs.solo.io/agentgateway/standalone/latest/setup/install/docker/).
+Release stream:
 [release notes](https://docs.solo.io/agentgateway/standalone/latest/release-notes/release-notes/).
-Nutanix AHV / NKP layout in this post is operational advice, not a joint
-reference architecture. Nutanix Agent Gateway (Nutanix Enterprise AI) is
-a different product.*
+Nutanix NKP / AHV / LB layout in this post is operational advice, not a
+joint reference architecture.*
