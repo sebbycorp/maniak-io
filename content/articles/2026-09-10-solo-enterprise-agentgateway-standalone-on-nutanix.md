@@ -645,3 +645,12 @@ Release stream:
 [release notes](https://docs.solo.io/agentgateway/standalone/latest/release-notes/release-notes/).
 Nutanix NKP / AHV / LB layout in this post is operational advice, not a
 joint reference architecture.*
+
+## Traffic shapes once it is up
+
+Clients keep one OpenAI-shaped path. agentgateway fans out to frontier and cloud providers, and it fronts MCP the same way — policies and authz in the middle, tools and models on the far side.
+
+![LLM traffic through agentgateway to OpenAI, Amazon Bedrock, and Azure AI Foundry](/images/articles/2026-09-10-solo-enterprise-agentgateway-nutanix/06-llm-multi-provider-flow.gif)
+
+![MCP clients through agentgateway to secured MCP servers](/images/articles/2026-09-10-solo-enterprise-agentgateway-nutanix/05-mcp-secured-flow.gif)
+
