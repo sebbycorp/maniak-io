@@ -303,6 +303,12 @@ traffic: the Nutanix load balancer, MetalLB, or Ingress. Health-check the
 
 ### What failover actually is
 
+![Virtual models with failover policies in the Solo Enterprise for agentgateway UI](/images/articles/2026-09-10-solo-enterprise-agentgateway-nutanix/01-models-virtual-failover.jpeg)
+
+Virtual models are the **LLM-side** half of resilience: one client model name, several provider targets, and a **failover** policy so a dead upstream is not a dead request. Pair that with `replicaCount` + Postgres so the **gateway process** is also redundant.
+
+
+
 I am going to be boring on purpose, because this is where integration
 posts start inventing features.
 
@@ -346,6 +352,14 @@ Do not publish 15000 "for HTTPS." Wrong port, wrong interface. Before
 [Secure the UI](https://docs.solo.io/agentgateway/standalone/latest/setup/ui/secure-ui/).
 
 ## Smoke test (production)
+
+![LLM Logs across OpenAI, Anthropic, Bedrock, and xAI](/images/articles/2026-09-10-solo-enterprise-agentgateway-nutanix/02-logs-multi-provider.jpeg)
+
+![LLM Logs with latency, tokens, and cost per call](/images/articles/2026-09-10-solo-enterprise-agentgateway-nutanix/03-logs-costs-latency.jpeg)
+
+
+![Analytics dashboard: cost, tokens, and calls over a four-hour window](/images/articles/2026-09-10-solo-enterprise-agentgateway-nutanix/04-analytics-cost.jpeg)
+
 
 Placeholders only. `<lb>` is the VIP or Ingress hostname.
 
