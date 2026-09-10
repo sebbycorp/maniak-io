@@ -146,6 +146,8 @@ flowchart LR
   P3 --- PG
 ```
 
+![HA on vSphere: clients through NSX ALB to three RHEL agentgateway proxies and shared PostgreSQL](/images/articles/2026-09-10-solo-enterprise-agentgateway-vmware-rhel/01-ha-architecture.gif)
+
 Three RHEL proxy VMs, one shared `config.yaml` baseline, one PostgreSQL.
 The VIP is the only address clients should know. TLS terminates at the
 edge.
@@ -653,6 +655,17 @@ honest.
 Rotate anything that ended up in a ticket. Don't commit a `license.env`
 or a `config.yaml` carrying a real `postgres://` password, and don't
 leave an unauthenticated `/ui` on a network you don't trust.
+
+## Traffic shapes once it's up
+
+Clients keep talking to one OpenAI-shaped path while agentgateway fans
+out to frontier and cloud providers behind it. It fronts MCP the same
+way: policies and authorization in the middle, tools and models on the
+far side.
+
+![LLM traffic through agentgateway to OpenAI, Amazon Bedrock, and Azure AI Foundry](/images/articles/2026-09-10-solo-enterprise-agentgateway-vmware-rhel/06-llm-multi-provider-flow.gif)
+
+![MCP clients through agentgateway to secured MCP servers](/images/articles/2026-09-10-solo-enterprise-agentgateway-vmware-rhel/05-mcp-secured-flow.gif)
 
 ## The takeaway
 
