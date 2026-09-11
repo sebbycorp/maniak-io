@@ -237,7 +237,7 @@ flowchart LR
 
 The picture is the same story as the mermaid.
 
-<!-- GIFs: 01-traffic-flow.gif, 06-llm, 05-mcp — added in follow-up -->
+![Traffic flow: clients through F5 DNS and LTM VIPs to standalone agentgateway, LLMs, and virtual MCP](/images/articles/2026-09-11-solo-enterprise-agentgateway-f5/01-traffic-flow.gif)
 
 Clients resolve `ai.example.com` at BIG-IP DNS. Each answer is a
 **DC LTM VIP on :443**, not a backend. That VIP fans out to N
@@ -773,6 +773,17 @@ replica count, and the health checks are honest.
 Rotate anything that ended up in a ticket. Don't commit a license
 file or a `config.yaml` carrying a real `postgres://` password, and
 don't leave an unauthenticated `/ui` on a network you don't trust.
+
+## Traffic shapes once it's up
+
+Clients keep talking to one OpenAI-shaped path while agentgateway fans
+out to frontier and cloud providers behind it. It fronts MCP the same
+way: policies and authorization in the middle, tools and models on the
+far side. The F5 VIP is just how they find that path.
+
+![LLM traffic through agentgateway to OpenAI, Amazon Bedrock, and Azure AI Foundry](/images/articles/2026-09-11-solo-enterprise-agentgateway-f5/06-llm-multi-provider-flow.gif)
+
+![MCP clients through agentgateway to secured MCP servers](/images/articles/2026-09-11-solo-enterprise-agentgateway-f5/05-mcp-secured-flow.gif)
 
 ## The takeaway
 
