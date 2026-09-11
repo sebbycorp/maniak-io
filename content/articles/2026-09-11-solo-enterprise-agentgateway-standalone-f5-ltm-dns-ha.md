@@ -23,10 +23,6 @@ tags:
 author: "Sebastian Maniak"
 ---
 
-Most of what I've written about [agentgateway](https://agentgateway.dev)
-assumes Kubernetes. This post is the F5 version of that sentence — the
-front door you already own, not a cluster you have to invent.
-
 What we're building is
 [Solo Enterprise for agentgateway](https://docs.solo.io/agentgateway/standalone/latest/)
 in **standalone mode**, sitting behind **classic BIG-IP LTM** in each

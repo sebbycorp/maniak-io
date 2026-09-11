@@ -21,9 +21,6 @@ tags:
 author: "Sebastian Maniak"
 ---
 
-Most of what I've written about [agentgateway](https://agentgateway.dev)
-assumes Kubernetes. This post is the Nutanix version of that sentence.
-
 What we're building is
 [Solo Enterprise for agentgateway](https://docs.solo.io/agentgateway/standalone/latest/)
 in **standalone mode**, running on infrastructure you already own:

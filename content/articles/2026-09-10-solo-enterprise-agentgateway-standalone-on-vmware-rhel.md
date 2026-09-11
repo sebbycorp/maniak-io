@@ -21,10 +21,6 @@ tags:
 author: "Sebastian Maniak"
 ---
 
-Most of what I've written about [agentgateway](https://agentgateway.dev)
-assumes Kubernetes. This post is the VMware version of that sentence —
-RHEL guests on vSphere, no Tanzu, no Helm.
-
 What we're building is
 [Solo Enterprise for agentgateway](https://docs.solo.io/agentgateway/standalone/latest/)
 in **standalone mode**, running on infrastructure you already own:
