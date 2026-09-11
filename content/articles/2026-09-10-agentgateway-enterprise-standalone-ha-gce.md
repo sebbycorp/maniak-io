@@ -7,11 +7,7 @@ categories: ["AI Gateway"]
 author: "Sebastian Maniak"
 ---
 
-Most of what I've written about [agentgateway](https://agentgateway.dev) lands on Kubernetes. This one doesn't.
-
-I wanted a **three-node HA fleet** of [Solo Enterprise for agentgateway](https://docs.solo.io/agentgateway/standalone/latest/) that I could treat like any other GCE workload: a regional managed instance group, a regional HTTPS load balancer, private VMs, and no cluster to babysit. Docker on Debian. That's it.
-
-GKE is the right answer when you already have a cluster and you want Helm to own the rollout. For this lab I wanted the opposite — prove the [standalone Docker path](https://docs.solo.io/agentgateway/standalone/latest/setup/install/docker/) can sit behind GCP's own primitives and still look like one hostname.
+I wanted a **three-node HA fleet** of [Solo Enterprise for agentgateway](https://docs.solo.io/agentgateway/standalone/latest/) on GCE: a regional managed instance group, a regional HTTPS load balancer, private VMs, and no cluster. Each box is Debian running the [standalone Docker image](https://docs.solo.io/agentgateway/standalone/latest/setup/install/docker/). GCP owns the edge, the health checks, and the shared state. The hostname is one door.
 
 Everything below is from a real apply in project `maniak-io`, region `us-central1`, on **September 10, 2026**. Console facts and the `/whoami` JSON in the apply shot are from that run. The how-to lives in [`15-standalone-gcp-ha`](https://github.com/sebbycorp/agentgateway-demos/tree/main/15-standalone-gcp-ha).
 
@@ -179,7 +175,7 @@ Identity Platform on this apply: Email / Password on, Anonymous off. JWT issuer 
 
 ![https://agw-gcp-ha.maniak.io/whoami returning node, zone, and IP](/images/articles/2026-09-10-agentgateway-enterprise-standalone-ha-gce/07-whoami.png)
 
-I hit the same URL again while writing this. The other two names showed up too — `agw-gcp-ha-k34b` in `us-central1-b` (`10.10.0.2`) and `agw-gcp-ha-b2jn` in `us-central1-c` (`10.10.0.3`). That's the whole proof.
+Hit it a few more times and the other two names show up — `agw-gcp-ha-k34b` in `us-central1-b` (`10.10.0.2`) and `agw-gcp-ha-b2jn` in `us-central1-c` (`10.10.0.3`). That's the whole proof.
 
 ---
 
@@ -224,9 +220,9 @@ Rotate anything that ended up in a ticket. Don't commit a `license.env`. Don't p
 
 ## The takeaway
 
-Standalone Enterprise is one process and one config file. HA on GCE is three of those processes, a load balancer that health-checks `/healthz/ready`, and a Postgres that outlives any one VM. Docker is how the process gets onto the box. Kubernetes is optional.
+Standalone Enterprise is one process and one config file. HA on GCE is three of those processes, a load balancer that health-checks `/healthz/ready`, and a Postgres that outlives any one VM. Docker is how the process gets onto the box.
 
-I ran it in `maniak-io`. The console shots are from that apply. `/whoami` I hit again while writing — same JSON shape, different node. The repo is the runbook.
+I ran it in `maniak-io`. The console shots are from that apply. `/whoami` keeps returning the same JSON shape on a different node. The repo is the runbook.
 
 👉 Lab folder: **[sebbycorp/agentgateway-demos / 15-standalone-gcp-ha](https://github.com/sebbycorp/agentgateway-demos/tree/main/15-standalone-gcp-ha)**
 
