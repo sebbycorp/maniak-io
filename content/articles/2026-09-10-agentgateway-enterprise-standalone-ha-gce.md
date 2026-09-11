@@ -13,7 +13,7 @@ I wanted a **three-node HA fleet** of [Solo Enterprise for agentgateway](https:/
 
 GKE is the right answer when you already have a cluster and you want Helm to own the rollout. For this lab I wanted the opposite — prove the [standalone Docker path](https://docs.solo.io/agentgateway/standalone/latest/setup/install/docker/) can sit behind GCP's own primitives and still look like one hostname.
 
-Everything below is from a real apply in project `maniak-io`, region `us-central1`, on **September 10, 2026**. The screenshots are from that run. The how-to lives in [`15-standalone-gcp-ha`](https://github.com/sebbycorp/agentgateway-demos/tree/main/15-standalone-gcp-ha).
+Everything below is from a real apply in project `maniak-io`, region `us-central1`, on **September 10, 2026**. Console facts and the `/whoami` JSON in the apply shot are from that run. The how-to lives in [`15-standalone-gcp-ha`](https://github.com/sebbycorp/agentgateway-demos/tree/main/15-standalone-gcp-ha).
 
 The public door is `https://agw-gcp-ha.maniak.io`.
 
