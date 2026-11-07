@@ -1,0 +1,5 @@
+certs/
+.env
+.run/
+.cache/
+*.log
