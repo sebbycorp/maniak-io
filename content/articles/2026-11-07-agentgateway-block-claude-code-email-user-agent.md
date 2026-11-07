@@ -2,7 +2,7 @@
 title: "How To: Keep a Claude Code account email out of User-Agent with standalone agentgateway"
 date: 2026-11-07
 draft: false
-description: "A localhost agentgateway lab with two hops. The Anthropic Messages listener masks one account address in the prompt. The CONNECT egress listener inspects HTTPS and replaces User-Agent before a local echo sees it. Includes the config, the run, and the limits of Claude Code's privacy mod."
+description: "A localhost agentgateway lab with two hops, so consumers talk to Claude through the proxy instead of calling api.anthropic.com directly. The Anthropic Messages listener masks one account address in the prompt. The CONNECT egress listener inspects HTTPS and replaces User-Agent before a local echo sees it. Includes the config, the run, and the limits of Claude Code's privacy mod."
 categories:
   - AI
   - LLM
@@ -16,7 +16,7 @@ tags:
 author: "Sebastian Maniak"
 ---
 
-I'm running a localhost [agentgateway](https://agentgateway.dev) 1.7.0 with two listeners. Port 4000 is an Anthropic-compatible Messages API. A regex prompt guard on that listener masks one account address, `you@example.com`, before the request is forwarded. Port 3000 is an HTTP CONNECT proxy. It terminates HTTPS with a local inspect CA and replaces `User-Agent` with `claude-code/egress` before a local echo server sees the request. The lab is on the machine in front of you. The inspect CA is for that machine, and the steps below are how you trust it locally.
+I'm running a localhost [agentgateway](https://agentgateway.dev) 1.7.0 with two listeners. Port 4000 is an Anthropic-compatible Messages API. A regex prompt guard on that listener masks one account address, `you@example.com`, before the request is forwarded. Port 3000 is an HTTP CONNECT proxy. It terminates HTTPS with a local inspect CA and replaces `User-Agent` with `claude-code/egress` before a local echo server sees the request. The lab is on the machine in front of you. The inspect CA is for that machine, and the steps below are how you trust it locally. The point of the setup is that consumers talk to Claude through the proxy, and Claude's own outbound curl talks to the internet through the same process, instead of calling the provider or the public web directly.
 
 <video controls playsinline muted preload="metadata" style="width:100%;height:auto;border-radius:8px" aria-label="Explainer of the Claude Code User-Agent email leak and the two agentgateway hops">
 <source src="/videos/agentgateway-claude-email-ua.mp4" type="video/mp4">
@@ -24,6 +24,16 @@ Your browser does not support the video tag.
 </video>
 
 The clip walks through the Claude Code User-Agent email leak and the two agentgateway hops: a prompt-guard mask on the LLM request, then an inspected egress hop that rewrites `User-Agent`. The address in the video is a fake example, `you@example.com`.
+
+## Why a proxy between Claude and everything downstream
+
+I want Claude Code, and whatever app or agent comes after it, talking to agentgateway. The gateway is the thing that calls Claude. The same process is the thing that carries curl out to the web. Calling `https://api.anthropic.com` from the client, or letting that curl dial the site on its own, skips both of those.
+
+This post is the security case. The account email rides in the prompt the client sends, and a model-written curl can put it in `User-Agent` where a third party logs it. On the proxy I can mask that address before the model sees it, or refuse a `User-Agent` that still contains it, before either hop leaves the machine.
+
+The provider credential stays on the gateway. Downstream consumers do not hold the raw Anthropic API key. They send traffic to agentgateway, and `apiKey: "$ANTHROPIC_API_KEY"` on the model is where the provider credential lives.
+
+The rules live there too. The regex prompt guard, the `User-Agent` rewrite, the deny rule, and a hostname allowlist are config on this proxy, not a copy I have to keep in every client. Prompts on the way to Claude, and the egress those tools open, pass through one process, so that is where I look instead of hoping each consumer logged the right thing.
 
 ## What was reported
 
