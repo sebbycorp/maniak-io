@@ -1,0 +1,82 @@
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+#
+# Session tokens are unused in this lab. `disabled` keeps agentgateway from
+# generating a key and writing it back into this file on startup.
+config:
+  session:
+    key: disabled
+
+# Localhost lab for two hops:
+#   :4000  Anthropic Messages API. Request regex guard masks one account address.
+#   :3000  HTTP CONNECT egress. Tunnel mode plus an internal dynamic-CA listener
+#          so HTTP policies see the request inside HTTPS.
+#
+# The local echo and the LLM mock are fixed backends on loopback. A fixed host
+# backend is allowed to dial loopback. Dynamic backends are not, unless
+# config.backend.allowDynamicLoopback is set, which this file does not set.
+#
+# Replace the regex and ACCOUNT_EMAIL together if you mask a different address.
+# Do not switch this rule to builtin: email. That rejects or masks every address,
+# which a coding agent still needs for other people's contacts.
+
+llm:
+  port: 4000
+  models:
+    - name: "*"
+      provider: anthropic
+      params:
+        apiKey: "$ANTHROPIC_API_KEY"
+        # Local mock. Change this to https://api.anthropic.com for the real API.
+        baseUrl: "http://127.0.0.1:4010"
+      guardrails:
+        request:
+          - regex:
+              action: mask
+              rules:
+                - pattern: '(?i)you@example\.com'
+
+binds:
+  - port: 3000
+    tunnelProtocol: connect
+    listeners: []
+  - port: 443
+    mode: internal
+    listeners:
+      - name: inspect
+        protocol: HTTPS
+        tls:
+          mode: dynamicCa
+          cert: certs/ca-cert.pem
+          key: certs/ca-key.pem
+        routes:
+          # Rewrite path. Upstream sees a generic User-Agent, including when
+          # the client sent the account address.
+          - name: rewrite-user-agent
+            hostnames:
+              - echo.lab.local
+            policies:
+              requestHeaderModifier:
+                set:
+                  user-agent: claude-code/egress
+            backends:
+              - host: 127.0.0.1:8443
+                policies:
+                  backendTLS:
+                    insecure: true
+          # Fail-closed path for the same echo. A User-Agent that contains @
+          # or the account address is denied. A header without those strings
+          # is forwarded unchanged. This route does not rewrite the header.
+          # Deny and rewrite are separate routes: a deny rule on the original
+          # User-Agent would block the request before a rewrite could be shown.
+          - name: deny-account-email-ua
+            hostnames:
+              - deny.lab.local
+            policies:
+              authorization:
+                rules:
+                  - deny: 'request.headers["user-agent"].contains("@") || request.headers["user-agent"].contains("you@example.com")'
+            backends:
+              - host: 127.0.0.1:8443
+                policies:
+                  backendTLS:
+                    insecure: true
