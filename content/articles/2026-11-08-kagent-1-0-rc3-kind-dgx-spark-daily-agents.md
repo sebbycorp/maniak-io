@@ -23,7 +23,7 @@ author: "Sebastian Maniak"
 
 **By Sebastian Maniak**
 
-kagent 1.0 is a different product from 0.x. Agents now run as **Substrate actors** inside gVisor sandboxes. They reach the network only through egress policies, and every Agent needs a **Harness**.
+kagent has grown up! 1.0 is out, and it's here to power my agent substrates. In this quick guide, we'll use a DGX Spark and configure a kind cluster to run on it.
 
 The result is a kind cluster on my Mac that uses a **DGX Spark** on the LAN as its only model provider. Two agents on that cluster do real work every day:
 
