@@ -23,7 +23,7 @@ author: "Sebastian Maniak"
 
 **By Sebastian Maniak**
 
-kagent 1.0 is a different product from 0.x. Agents now run as **Substrate actors** inside gVisor sandboxes. They reach the network only through egress policies, and every Agent needs a **Harness**. Examples written for 0.x (`kagent.dev/v1alpha2`, `spec.declarative`, `MCPServer`) won't apply on 1.0, so I rebuilt my home setup from scratch on **v1.0.0-rc3** and wrote down every step.
+kagent 1.0 is a different product from 0.x. Agents now run as **Substrate actors** inside gVisor sandboxes. They reach the network only through egress policies, and every Agent needs a **Harness**.
 
 The result is a kind cluster on my Mac that uses a **DGX Spark** on the LAN as its only model provider. Two agents on that cluster do real work every day:
 
