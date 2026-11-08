@@ -23,7 +23,7 @@ author: "Sebastian Maniak"
 
 **By Sebastian Maniak**
 
-kagent has grown up! 1.0 is out, and it's here to power my agent substrates. In this quick guide, we'll use a DGX Spark and configure a kind cluster to run on it.
+kagent has grown up! 1.0 is out, and it's here to power my agent substrates. In this quick guide, we'll use a DGX Spark and configure a kind cluster that uses it as the model provider.
 
 The result is a kind cluster on my Mac that uses a **DGX Spark** on the LAN as its only model provider. Two agents on that cluster do real work every day:
 
