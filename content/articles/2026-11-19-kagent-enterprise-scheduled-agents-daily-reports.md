@@ -39,6 +39,14 @@ The part I want to show in this post is how little the agents cost when they're 
 
 > In the [previous post](/articles/2026-11-08-kagent-1-0-rc3-kind-dgx-spark-daily-agents/) I built two daily agents on kind with OSS kagent and CronJobs. This post covers my "real" lab cluster with **kagent Enterprise**, where schedules, egress control and worker tiers are built into the platform.
 
+Here's the walkthrough on video:
+
+<div style="max-width:800px;margin:1.5rem auto;">
+<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:12px;">
+<iframe src="https://www.youtube.com/embed/8kqQOpkWuE0" title="kagent Enterprise scheduled agents on Agent Substrate with a DGX Spark" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+</div>
+</div>
+
 ---
 
 ## The environment
