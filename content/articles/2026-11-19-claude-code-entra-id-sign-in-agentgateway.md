@@ -182,7 +182,7 @@ The last two rows matter for the next step. The policy reads the `Authorization`
 
 ## Step 4: Give Claude Code a way to get a token
 
-[`entra-token.py`](https://github.com/sebbycorp/agentgateway-oss-k8s/blob/main/claude-code/entra-token.py) is about 140 lines of Python with no dependencies. It does a browser sign-in with PKCE against the app registration (a public client, so there is no secret), keeps the access and refresh token in a file only I can read, and refreshes the access token when less than 10 minutes are left.
+[`entra-token.py`](https://github.com/sebbycorp/agentgateway-oss-k8s/blob/main/claude-code/entra-token.py) is about 150 lines of Python with no dependencies. It does a browser sign-in with PKCE against the app registration (a public client, so there is no secret), keeps the access and refresh token in a file only I can read, and refreshes the access token when less than 10 minutes are left.
 
 | Command | What it does |
 |---|---|
