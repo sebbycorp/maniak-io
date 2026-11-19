@@ -341,10 +341,11 @@ Think before you turn prompt logging on for a team. Every prompt lands in Postgr
 
 ## Where to go next
 
-The repo has this as a 10-step guide with every command, a troubleshooting table and a script for the Entra setup: [entra-id/README.md](https://github.com/sebbycorp/agentgateway-oss-k8s/blob/main/entra-id/README.md).
+The repo has this as a 10-step guide with every command and a troubleshooting table: [entra-id/README.md](https://github.com/sebbycorp/agentgateway-oss-k8s/blob/main/entra-id/README.md).
 
 Related posts:
 
+- [Add Entra ID sign-in to Claude Code through agentgateway](/articles/2026-11-19-claude-code-entra-id-sign-in-agentgateway/), the same gateway policies with Claude Code as the client
 - [Deploy Codex CLI with Bedrock through agentgateway](/articles/2026-11-18-deploy-codex-cli-bedrock-agentgateway/), the build this post starts from
 - [Claude Code on Amazon Bedrock with short-lived credentials](/articles/2026-10-30-claude-code-bedrock-agentdesktop-agentgateway/), for another take on client authentication
 - [The agentgateway cost and tokenomics dashboard](/articles/2026-06-24-agentgateway-cost-tokenomics-dashboard/), for more on the logs and analytics pages
