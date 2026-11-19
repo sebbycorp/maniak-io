@@ -228,7 +228,7 @@ scopes = ["api://<APP_ID>/access", "offline_access"]
 url = "http://localhost:<port>/mcp"
 ```
 
-Save it as `~/.codex/agentgateway.config.toml`. There is no token and no secret in the file.
+Save it as `~/.codex/agentgateway.config.toml`. There is no token and no secret in the file. If you added the two blocks that make Claude models work in the [previous post](/articles/2026-11-18-deploy-codex-cli-bedrock-agentgateway/#10-more-models-optional), keep them at the end of the file.
 
 Now start Codex:
 
@@ -336,6 +336,7 @@ Think before you turn prompt logging on for a team. Every prompt lands in Postgr
 - **Group changes are slow.** Membership is read when the token is issued. Removing someone from the group does not cut them off until their token expires, which can take up to an hour.
 - **A random gateway port breaks the MCP sign-in.** I run cloud-provider-kind with a random localhost port. When that port changes, the MCP URL changes, the callback ID changes, and Step 6 has to be redone. A fixed port avoids it.
 - **More than 200 groups.** Entra drops the `groups` claim for such users, and the policy answers 403. The fix is to emit only groups assigned to the application.
+- **The sign-in is per gateway, not per model.** I published `gpt-oss-20b` and `claude-haiku-4-5` next to `gpt-oss-120b`. All three sit behind the same policy, and `codex -m claude-haiku-4-5` uses the same sign-in.
 - **It is still plain HTTP on localhost.** The token is a bearer credential. Put TLS on the listener before you use this off your own machine.
 
 ## Where to go next
