@@ -1,5 +1,5 @@
 ---
-title: "One team budget for every coding agent"
+title: "Borrow from the team budget"
 date: 2026-11-19
 draft: false
 description: "A team draws from one shared LLM budget, each person has a personal limit, and anyone who hits theirs can borrow from the pool with one command, in pi, Claude Code, opencode, Codex or Grok Build. agentgateway Enterprise standalone enforces the budgets and RBAC decides who may borrow. The commands never call the model, so they work when you're already blocked. Built in a Proxmox LXC in front of a DGX Spark, with no gateway code changes."
