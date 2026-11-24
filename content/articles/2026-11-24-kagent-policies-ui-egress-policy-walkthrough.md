@@ -47,6 +47,67 @@ Three things to know before you start:
 - **A policy only adds access.** It can't remove a destination that kagent inferred from the agent's model and tools.
 - **Model and MCP server hosts don't need a policy.** The page says so itself.
 
+## Where policies sit: the sandbox and Agent Substrate
+
+A policy only makes sense once you know what it's a hole in. So here's the short version of how kagent 1.0 runs an agent.
+
+kagent doesn't run your agent as an ordinary pod. It runs it on **Agent Substrate**, the runtime that `kagent install` puts in the `ate-system` namespace. Substrate has a few terms worth knowing:
+
+| Term | What it is |
+|---|---|
+| Worker pool | A set of Worker pods that are ready to run sandboxes. A fresh install has one, `kagent-default` |
+| Actor | One running agent session or one standalone sandbox. Each Actor gets its own sandbox |
+| Actor template | The prepared image and snapshot that new Actors start from. kagent makes one for each agent and each sandbox template |
+| Egress gateway | The `atenet-egress` deployment. Every outbound connection from an Actor goes through it |
+| Router | The `atenet-router` deployment. It's the only way in to an Actor |
+
+```mermaid
+graph LR
+    U["You<br/>(kagent UI or CLI)"] --> C["kagent controller"]
+    C --> R["Substrate router"]
+    subgraph worker["Worker pod"]
+        subgraph sb["gVisor sandbox"]
+            A["Actor<br/>agent session or sandbox"]
+        end
+    end
+    R -->|"only ingress path"| A
+    A --> G["Egress gateway<br/>default-deny"]
+    G -->|"allowed: inferred by kagent"| M["Model and MCP servers"]
+    G -->|"allowed: your EgressPolicy"| K["Hosts you grant"]
+    G -.->|"denied"| X["Everything else"]
+    style worker fill:#FFF7D6,stroke:#E5341F,color:#17181C
+    style sb fill:#F1EFE9,stroke:#E5341F,color:#17181C
+    style A fill:#FFFFFF,stroke:#17181C,color:#17181C
+    style U fill:#FFFFFF,stroke:#17181C,color:#17181C
+    style C fill:#FFFFFF,stroke:#17181C,color:#17181C
+    style R fill:#FFFFFF,stroke:#17181C,color:#17181C
+    style G fill:#FFFFFF,stroke:#17181C,color:#17181C
+    style M fill:#FFFFFF,stroke:#17181C,color:#17181C
+    style K fill:#FFFFFF,stroke:#17181C,color:#17181C
+    style X fill:#FFFFFF,stroke:#17181C,color:#17181C
+```
+
+The sandbox separates an Actor from the node in three places:
+
+- **Process and kernel.** The agent's system calls go to gVisor's user-space kernel, not to the host kernel.
+- **Filesystem.** The Actor sees the filesystem from its image, plus any volume its template declares. It doesn't see the Worker's.
+- **Network.** Inbound, only the Substrate router can connect. Outbound, every connection goes through the egress gateway, and the gateway denies anything that no rule allows.
+
+You can check the sandbox class on your own cluster. The `SANDBOXCONFIG` column shows which one the pool uses:
+
+```bash
+kubectl get workerpools -n kagent
+```
+
+```console
+NAME             DESIRED   REPLICAS   READY   SANDBOXCONFIG    RESOLVED   AGE
+kagent-default   1         1          1       gvisor-default   True       27h
+```
+
+The first two boundaries need no input from you. The network one does, because only you know which hosts an agent has a reason to call. kagent fills in the obvious part: it reads the agent's template and allows the model provider and the MCP servers that the template names. **Everything else is yours to grant, and the Policies page is where you grant it.**
+
+That's why this page matters more than a settings screen usually does. An agent reads text that somebody else wrote and can act on it. If a prompt injection gets through, the allow-list is what limits where the agent can send your data. I go deeper on the sandbox itself in [Build a CVE agent with kagent and Agent Substrate in a secure sandbox](/articles/2026-11-24-kagent-cve-agent-substrate-secure-sandbox/).
+
 ## Before you begin
 
 You need kagent 1.0 or later with the UI open. If you don't have that yet, [install kagent locally with one command](/articles/2026-11-24-install-kagent-locally-kind-one-command/) and then run:
@@ -170,7 +231,7 @@ This is the mode I'd reach for first. The token stays in a Secret and in the gat
 
 *Actor JWT sends a short-lived token instead of a stored secret.*
 
-An Actor is Substrate's name for one running agent session or sandbox. Choose **Actor JWT** when the service on the other end can verify a token that identifies that Actor. There's no stored secret. You fill in:
+Choose **Actor JWT** when the service on the other end can verify a token that identifies the Actor. There's no stored secret. You fill in:
 
 | Field | Example | Notes |
 |---|---|---|
@@ -372,7 +433,9 @@ So if an agent suddenly can't reach a host, check the `EgressPoliciesApplied` co
 
 ## What this means for managing Agent Substrate
 
-On the **Substrate** page you can see the other half of the picture: the worker pool, one actor template for each agent and sandbox template, and the actors that are running or suspended.
+On the **Substrate** page you can see the other half of the picture: the worker pool, one actor template for each agent and sandbox template, and the Actors that are running or suspended.
+
+While my test ran, the sandbox from the previous section showed up here as a `Running` Actor on the `kagent-default` Worker pod, next to two suspended agent sessions. Substrate suspends an idle Actor to a snapshot and resumes it when it's needed, so a suspended session uses no Worker.
 
 ![The Substrate page listing one worker pool, eight actor templates, three actors and one worker](/images/articles/2026-11-24-kagent-policies-ui/11-substrate-page.png)
 
