@@ -27,6 +27,8 @@ So I built it: one shared **team pool**, a **personal limit** for each developer
 
 ![pi: blocked by the gateway, borrow from the team pool, back to work](/images/articles/2026-11-19-agentgateway-team-budget-pool/pi-flow.gif)
 
+*The red `429 budget_exceeded` lines at the start are the point, not a failed run: bob is over his personal limit, `/increase-my-budget` borrows from the team pool, and the same prompt then works.*
+
 The code, configs and install steps for all five agents are at [github.com/sebbycorp/agentgateway-budget](https://github.com/sebbycorp/agentgateway-budget).
 
 ## What I wanted
@@ -43,6 +45,8 @@ The code, configs and install steps for all five agents are at [github.com/sebby
 - **The model:** Qwen 3.8 Flash on my DGX Spark, served by vLLM. It's free to run, so I gave it a made-up price ($3 in, $15 out per million tokens) to make the dollar budgets mean something.
 - **The agents:** pi in a second LXC, plus Claude Code, opencode, Codex and Grok Build on my Mac.
 - **Test users:** alice, bob and carol on the engineering team; dave on research.
+
+*Update, November 24:* I re-ran the pi flow with the gateway on my Mac instead of the LXC, on v2026.11.1-patch.0. The repo README now has a [laptop quick start](https://github.com/sebbycorp/agentgateway-budget#try-it-on-your-laptop-macos-apple-silicon), and that run added three entries to "Things that bit me" below.
 
 ## Architecture
 
@@ -253,6 +257,9 @@ I also ran the agentgateway repo's own test suite against the release: 4,584 pas
 - **Grok Build retries a 429 up to 9 times** by default. Set `max_retries = 1` in the model config so over-budget users don't hammer the gateway.
 - **Claude Code needs a Claude model behind the gateway.** agentgateway translated Claude Code's requests to my Qwen backend fine, but Qwen's chat template rejected Claude Code's system prompt layout. The hook commands still worked, because they never reach the model.
 - **macOS still ships bash 3.2,** where `set -u` treats an empty array as unset. That broke every borrow in one test run until I fixed it.
+- **A stray `OPENAI_API_KEY` wins the key lookup.** The script tries `AGW_KEY`, `AGW_API_KEY`, `ANTHROPIC_AUTH_TOKEN` and `OPENAI_API_KEY` before pi's provider key. My Mac exports a real OpenAI key, so `/my-budget` sent that to the gateway and got a 401. The pi extension now passes the `agw-ent` key from `models.json` itself. In the other agents, set `AGW_KEY`.
+- **The license variable is `ENTERPRISE_AGENTGATEWAY_LICENSE_KEY`.** I had `AGENTGATEWAY_LICENSE_KEY` exported, which the standalone binary doesn't read.
+- **Old pi hangs on a blocked prompt.** On pi 0.73, a prompt sent while over budget sat silent in `pi -p` instead of printing the 429. The gateway's 429 carries a `retry-after` of several hours (until the window resets), which may be why. The commands themselves worked. pi moved to the `@earendil-works/pi-coding-agent` package; 1.5 prints the errors as in the screenshots above.
 
 ## Wrap-up
 
