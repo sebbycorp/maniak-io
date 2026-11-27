@@ -22,7 +22,7 @@ author: "Sebastian Maniak"
 
 **By Sebastian Maniak**
 
-I use coding agents all day. Claude Code, Pi, Codex. They are good at writing code, and they are even better when they can run it. The part I don't love is where it runs: on my laptop, as me, with my SSH keys, my cloud logins and my network.
+I use coding agents all day. Claude Code, Pi, Codex. They are good at writing code, and they are even better when they can run it. The part I like less is where it runs: on my laptop, as me, with my SSH keys, my cloud logins and my network.
 
 kagent 1.0 has a clean answer to that. A **Sandbox** is a throwaway, locked-down environment that a person, a script or an agent can create to run commands. A **SandboxTemplate** defines what is inside it. And kagent exposes sandboxes over MCP, so any harness that speaks MCP can use one.
 
