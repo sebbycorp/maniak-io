@@ -2,7 +2,7 @@
 title: "Give Claude Code and Pi a sandbox: kagent sandbox templates on Agent Substrate"
 date: 2026-11-27
 draft: false
-description: "A coding agent that can run code is useful. A coding agent that runs code on your laptop, with your credentials and your network, is a risk. This post sets up kagent sandbox templates on a local kind cluster, then connects Pi and Claude Code to them over MCP, so the agent loop stays on my machine and the code it writes runs in a gVisor sandbox that has no network unless I grant a destination. It includes every command, the screenshots, and the Agent Substrate logs that show a sandbox ready in about 125 milliseconds."
+description: "A coding agent that can run code is useful. A coding agent that runs code on your laptop, with your credentials and your network, is a risk. This post sets up kagent sandbox templates on a local kind cluster, then connects Pi and Claude Code to them over MCP, so the agent loop stays on my machine and the code it writes runs in a gVisor sandbox that has no network unless I grant a destination. It covers the security isolation that makes a cluster a better place for this than a laptop, and includes every command, the screenshots, and the Agent Substrate logs that show a sandbox ready in about 125 milliseconds."
 categories:
   - AI
   - Agents
@@ -24,11 +24,27 @@ author: "Sebastian Maniak"
 
 I use coding agents all day. Claude Code, Pi, Codex. They are good at writing code, and they are even better when they can run it. The part I like less is where it runs: on my laptop, as me, with my SSH keys, my cloud logins and my network.
 
-kagent 1.0 has a clean answer to that. A **Sandbox** is a throwaway, locked-down environment that a person, a script or an agent can create to run commands. A **SandboxTemplate** defines what is inside it. And kagent exposes sandboxes over MCP, so any harness that speaks MCP can use one.
+Think about what that means for a second. I ask an agent a question. It writes a script I haven't read. Then it runs that script on the same machine that can push to production. Most days that's fine. I'd rather not depend on "most days".
 
-In this post I set that up on a local kind cluster and connect two harnesses to it: **Pi** and **Claude Code**. Both keep their agent loop on my machine. Both run the code they write in a sandbox in the cluster. I ran everything here on kagent 1.0.1, and the outputs, screenshots and logs are from those runs.
+So here's what I wanted: let the agent keep running code, but move the running part somewhere safe. Somewhere I control, with rules I set once, that isn't my laptop.
 
-All of the scripts and manifests are in [sebbycorp/agentsubstrate-kagent-demos](https://github.com/sebbycorp/agentsubstrate-kagent-demos), under `sandbox-templates/`.
+kagent 1.0 does this with two things:
+
+- A **Sandbox** is a throwaway, locked-down box that a person, a script or an agent can spin up to run commands.
+- A **SandboxTemplate** is the recipe for that box: which image is inside, and what it's allowed to reach.
+
+kagent also exposes sandboxes over MCP, the protocol coding agents use to call tools. That means any agent that speaks MCP can use one.
+
+In this post I set that up on a local kind cluster and connect two coding agents to it: **Pi** and **Claude Code**. The agent still runs on my machine. The code it writes runs in a sandbox in the cluster. I ran everything here on kagent 1.0.1, and the outputs, screenshots and logs are from those runs.
+
+If you just want the scripts, they're in [sebbycorp/agentsubstrate-kagent-demos](https://github.com/sebbycorp/agentsubstrate-kagent-demos), under `sandbox-templates/`.
+
+**The short version**
+
+- Setup is one Helm value, one template, and one URL in your coding agent.
+- The agent's code runs in a gVisor sandbox in the cluster, not on your laptop.
+- The sandbox has no network until you grant a specific site.
+- A sandbox was ready 125 milliseconds after Pi asked for one.
 
 ---
 
@@ -54,11 +70,11 @@ graph LR
     G -->|"only granted origins"| P["pypi.org"]
 ```
 
-The model and the conversation never leave my machine. Only the execution moves. When the model wants to run something, the harness makes an MCP tool call to kagent, and kagent does the work inside a sandbox.
+Read it left to right. The model and the conversation stay on my machine. Only the *running* moves. When the model wants to run something, Pi or Claude Code asks kagent, and kagent does the work inside a sandbox.
 
 ## Why I want this
 
-An agent that can only talk is limited. An agent that can run code can check its own work, analyze data and reproduce bugs. The question is where that code runs.
+An agent that can only talk is limited. An agent that can run code can check its own work, crunch data and reproduce bugs. So the real question isn't whether to let it run code. It's where.
 
 | Where the code runs | What goes wrong |
 |---|---|
@@ -67,7 +83,7 @@ An agent that can only talk is limited. An agent that can run code can check its
 | On a CI runner | The runner holds deploy secrets, and nobody has reviewed the code yet |
 | In a sandbox | The code gets an empty box: its own files, no credentials, and no network unless I grant a destination |
 
-This is the part that changed how I think about it. I am not trusting the agent. I am trusting the box. I write the template, and the agent can only pick a template that exists.
+Here's the idea that changed how I think about it. I'm not trusting the agent. I'm trusting the box. I write the template, and the agent can only pick a template that exists.
 
 | I control, in the template | The agent controls |
 |---|---|
@@ -75,9 +91,51 @@ This is the part that changed how I think about it. I am not trusting the agent.
 | Which destinations are reachable | What commands to run |
 | CPU, memory and maximum lifetime | When to suspend, resume and delete |
 
+## Security isolation: a controlled environment, not a laptop
+
+This is the heart of it, so I want to slow down here.
+
+When an agent runs code on a laptop, the only thing between that code and everything I own is the agent's good behavior. There's no wall. If the model gets tricked by a bad web page, or just makes a mistake, the code runs with my permissions.
+
+A sandbox on Agent Substrate puts real walls around the code. There are four of them, and none of them depend on the agent behaving.
+
+**1. A separate kernel.** A normal container shares the host's kernel. A sandbox doesn't. By default it runs on [gVisor](https://gvisor.dev), which puts its own kernel, written to run in user space, between the code and the host. When the code makes a system call, gVisor answers it. If you want a stronger wall, a worker pool can use the `microvm` class instead, which runs each sandbox in a small virtual machine.
+
+**2. Its own files.** The sandbox sees its image and its own `/data` volume. It can't see the node's disk, other sandboxes, or the agent's files. In my untrusted-file test further down, the script looked for a Kubernetes service account token. There wasn't one to find.
+
+**3. No way in except one.** Agent Substrate creates a Kubernetes NetworkPolicy for the worker pool. It allows inbound traffic from the Substrate router and nothing else. Here it is on my cluster:
+
+```bash
+kubectl get networkpolicy -n kagent
+```
+
+```console
+NAME                       POD-SELECTOR                         AGE
+substrate-kagent-default   ate.dev/worker-pool=kagent-default   88m
+```
+
+Its one rule allows ingress from pods labeled `app: atenet-router` in the `ate-system` namespace. So nothing else in the cluster can open a connection to a sandbox. Your CNI has to enforce NetworkPolicy for this to hold, which is worth checking on your own cluster.
+
+**4. No way out unless I say so.** Outbound traffic goes through one egress gateway, and it denies by default. A sandbox reaches a site only if its template selects a policy that lists it. The gateway also knows *which* sandbox is asking, because each one has its own certificate identity, and it logs every request against that identity.
+
+Put together, this is what "controlled environment" means to me:
+
+| | On a laptop | In a sandbox on the cluster |
+|---|---|---|
+| Who decides what the code can reach | The agent, in practice | The platform team, in a template |
+| Credentials within reach | SSH keys, cloud logins, browser sessions | None. A secret can be added at the gateway and never enters the box |
+| Network | Whatever the laptop can reach, including the VPN | Nothing, then only the sites you list |
+| Record of what happened | Whatever the agent chose to print | Gateway and router logs, per sandbox, in one place |
+| Same for everyone | No. Every laptop is different | Yes. One template, pinned by digest |
+| When it's done | Files and processes linger | Deleted, or expired by its TTL |
+
+That last column is why I'd rather run this in a cluster than on a developer machine, even a careful one. The rules live in one place. One team sets them. They apply to every agent and every person the same way, and there's a log.
+
+It's not magic, so here's what it doesn't do. Anything you upload to a sandbox is readable by the code in it, so don't upload secrets. A site you allow can be used to send data out, so grant narrowly. And gVisor is a strong boundary but not a virtual machine. If you're running code you actively distrust, use the `microvm` class.
+
 ## Before you begin
 
-You need a kind cluster with kagent 1.0 and Agent Substrate. I covered that in [Install kagent locally on kind with one command](/articles/2026-11-24-install-kagent-locally-kind-one-command/). The short version:
+You need a kind cluster with kagent 1.0 and Agent Substrate. If you don't have one yet, I covered that in [Install kagent locally on kind with one command](/articles/2026-11-24-install-kagent-locally-kind-one-command/). The short version:
 
 ```bash
 kind create cluster --name kagent --image kindest/node:v1.37.0
@@ -85,11 +143,11 @@ export OPENAI_API_KEY=...
 kagent install --timeout 20m
 ```
 
-You also need `jq`, `helm`, Docker with buildx, and the harness you want to connect: [Pi](https://pi.dev), Claude Code, or both.
+You also need `jq`, `helm`, Docker with buildx, and the coding agent you want to connect: [Pi](https://pi.dev), Claude Code, or both.
 
 ## Step 1: Turn on sandboxes
 
-kagent runs its own guest program inside every sandbox. It serves the process and file operations. The Helm chart does not ship a default image for it, so a template never becomes ready until you set one.
+This is the one step that's easy to miss. kagent runs a small helper program inside every sandbox. It's the thing that actually starts your processes and moves your files. The Helm chart doesn't ship a default image for it, so until you set one, no template ever becomes ready.
 
 ```bash
 cat > sandbox-values.yaml <<'EOF'
@@ -113,7 +171,7 @@ These values apply to every sandbox in the installation. A template cannot overr
 
 ## Step 2: Create the template
 
-A template names a tools image. The API server rejects an image referenced by tag alone, so look up the digest first. Use the digest of the image index, so each node pulls the variant for its own architecture.
+A template names a tools image: the box's contents. Pick an image that already has what you need, because the sandbox can't download anything later unless you grant it. kagent won't accept an image by tag alone, so look up the digest first. Use the digest of the image index, so each node pulls the variant for its own architecture.
 
 ```bash
 DIGEST=$(docker buildx imagetools inspect python:3.13-slim \
@@ -147,13 +205,13 @@ NAMESPACE  NAME    IMAGE
 kagent     python  docker.io/library/python:3.13-slim@sha256:7249d558...
 ```
 
-When you apply a template, kagent builds a **golden snapshot** of it. That is why the first `Ready` takes a minute, and why every sandbox after that starts fast. I'll show the numbers later.
+When you apply a template, kagent builds a **golden snapshot** of it, a ready-made copy that new sandboxes start from. That is why the first `Ready` takes a minute, and why every sandbox after that starts fast. I'll show the numbers later.
 
 There is no `egressPolicyRefs` field in that template. That means no outbound network at all.
 
 ## Step 3: Try it by hand
 
-Before I let an agent near it, I want to see it work from a terminal.
+Before I let an agent near it, I want to see it work with my own hands.
 
 ```bash
 SANDBOX_ID=$(kagent sandbox create python --request-id "cli-$(uuidgen)" \
@@ -180,7 +238,7 @@ blocked
 bash: line 1: pypi.org: Name or service not known
 ```
 
-Notice how it fails. The name does not resolve. A blocked destination is not an HTTP 403. It is a DNS error, and the request never reaches the gateway.
+Good. And notice *how* it fails. The name doesn't resolve. A blocked destination is not an HTTP 403. It is a DNS error, and the request never reaches the gateway.
 
 Suspend and resume work the way you would hope, with one catch:
 
@@ -196,7 +254,7 @@ The catch: **suspend keeps files, not memory.** Everything under `/data` survive
 
 ## Step 4: Grant exactly one destination
 
-Say the sandbox needs to install packages. I don't open the internet. I grant PyPI.
+Now say the sandbox really does need to install packages. I don't open up the internet. I allow PyPI, and only PyPI.
 
 ```bash
 kubectl apply -f - <<EOF
@@ -256,7 +314,7 @@ kubectl patch sandboxtemplate python -n kagent --type json \
 
 ## Step 5: Connect Pi
 
-Here is the piece that makes this useful day to day. The kagent controller serves an MCP endpoint at `/mcp` on port 8083. I didn't deploy anything for it. It comes with `kagent install`.
+Here's the part that makes this useful day to day. The kagent controller serves an MCP endpoint at `/mcp` on port 8083. I didn't deploy anything for it. It comes with `kagent install`.
 
 Make it reachable from the laptop, and register it with Pi:
 
@@ -277,7 +335,7 @@ kagent: connected, 27 tools (direct, global)
 
 `--exposure direct` matters. Pi's default exposure is `codemode`, which makes MCP tools callable from scripts but does not declare them to the model. With `direct`, the model sees them like built-in tools.
 
-Now the task. I gave Pi a local file, `churn.csv`, with 60 customers, and this prompt:
+Now for a real task. I gave Pi a local file, `churn.csv`, with 60 customers, and this prompt:
 
 ```text
 Use the kagent sandbox tools to answer this question: what drove churn last
@@ -296,7 +354,7 @@ run anything on this machine. Instead:
 4. Read the output, then delete the Sandbox. Delete it even if a step failed.
 ```
 
-To prove the code runs in the sandbox and not on my laptop, I took Pi's local execution tools away:
+I wanted proof that the code runs in the sandbox and not on my laptop. So I took away Pi's ability to run anything locally:
 
 ```bash
 pi --approve -p \
@@ -324,7 +382,7 @@ The answer: starter plan customers churned at 47.2%, and customers with five or 
 
 ## Step 6: Connect Claude Code
 
-Claude Code is the same idea with different flags. For everyday use, register the server once:
+Claude Code is the same idea with different flags, and it took about two minutes. For everyday use, register the server once:
 
 ```bash
 claude mcp add --transport http kagent http://localhost:8083/mcp
@@ -369,11 +427,11 @@ By support tickets
 Sandbox used and deleted: `01a21d24-b7a4-742c-8894-91727d9a7bfe` (final state `RUNTIME_STATE_DELETED`).
 ```
 
-Two harnesses, two different models, the same sandbox template, the same numbers.
+Two coding agents, two different models, the same sandbox template, the same numbers.
 
 ## Step 7: The same thing as an agent inside the cluster
 
-You don't need a harness on a laptop. A kagent agent can use the same tools. kagent installs a `RemoteMCPServer` named `kagent-api` that points at the controller's own MCP endpoint, so an AgentTemplate binds the sandbox tools like any other tool. This is a trimmed version, and the full manifest is in the repo:
+You don't need a coding agent on a laptop at all. An agent that lives in the cluster can use the same tools. kagent installs a `RemoteMCPServer` named `kagent-api` that points at the controller's own MCP endpoint, so an AgentTemplate binds the sandbox tools like any other tool. This is a trimmed version, and the full manifest is in the repo:
 
 ```yaml
 apiVersion: api.kagent.dev/v1alpha3
@@ -435,7 +493,7 @@ This is two sandboxes deep, which is worth saying out loud. The agent's own sess
 
 ## What the logs show
 
-I wanted to know what actually happens in the cluster when Pi calls `create_sandbox`. Every sandbox is an **Actor** on Agent Substrate, named `session-<sandbox id>`, so you can follow one through the logs by its ID.
+I got curious about what actually happens in the cluster when Pi calls `create_sandbox`, so I went and read the logs. Every sandbox is an **Actor** on Agent Substrate, named `session-<sandbox id>`, so you can follow one through the logs by its ID.
 
 Here is the Pi run from Step 5, sandbox `01a21d34-d7d7-73ae-9b0c-5c8cfe93ea91`. First, the Substrate API server recording each state change:
 
@@ -532,7 +590,7 @@ ModuleNotFoundError: No module named 'distutils'
 
 Because both images are pinned by digest, that result is the same next month.
 
-## Things that cost me time
+## Things that tripped me up
 
 - **Models are bad at base64.** `write_sandbox_file` takes base64. My first Pi run on `gpt-4.1` hand-encoded it, got it wrong, gave up, and left a sandbox running. Telling the model to write files with a shell heredoc through `start_sandbox_process` fixed it. Claude Code chose the heredoc route without being told.
 - **Tell the agent to delete the sandbox even on failure.** Otherwise a failed run leaves one behind until its TTL. Keep TTLs short.
@@ -547,7 +605,7 @@ Because both images are pinned by digest, that result is the same next month.
 
 What I built here is a laptop setup. A few things change when other people use it.
 
-- **Turn on authentication.** By default the controller runs in `insecure` mode, where a caller names its own identity. Anyone who can reach port 8083 can create sandboxes. With auth on, the harness sends a bearer token: `claude mcp add --header`, or `pi mcp add --bearer-token-env-var`.
+- **Turn on authentication.** By default the controller runs in `insecure` mode, where a caller names its own identity. Anyone who can reach port 8083 can create sandboxes. With auth on, the coding agent sends a bearer token: `claude mcp add --header`, or `pi mcp add --bearer-token-env-var`.
 - **Don't port-forward.** Put the controller behind a real gateway with TLS.
 - **One namespace per team.** Anyone who can edit a template in a namespace can use every egress policy in it, and the secrets those policies reference.
 - **Keep templates narrow.** One template per job. The data analysis template does not need the PyPI grant.
@@ -564,7 +622,7 @@ kind delete cluster --name kagent
 
 ## Wrap-up
 
-The setup is small: one Helm value, one SandboxTemplate, and one MCP URL in the harness. What you get is a coding agent that can still run anything it writes, in a box where "anything" can't hurt you.
+The setup is small: one Helm value, one SandboxTemplate, and one MCP URL in your coding agent. What you get is an agent that can still run anything it writes, in a box where "anything" can't hurt you. And that box lives in a place you control, with the same rules for everyone, instead of on whichever laptop happened to ask.
 
 The numbers that stuck with me are from the logs. A sandbox was running 125 milliseconds after Pi asked for one, and it was gone 11 seconds later. That is cheap enough to use one per question.
 
