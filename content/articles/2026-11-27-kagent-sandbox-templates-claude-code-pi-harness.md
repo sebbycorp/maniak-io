@@ -114,7 +114,30 @@ NAME                       POD-SELECTOR                         AGE
 substrate-kagent-default   ate.dev/worker-pool=kagent-default   88m
 ```
 
-Its one rule allows ingress from pods labeled `app: atenet-router` in the `ate-system` namespace. So nothing else in the cluster can open a connection to a sandbox. Your CNI has to enforce NetworkPolicy for this to hold, which is worth checking on your own cluster.
+Its one rule allows ingress from pods labeled `app: atenet-router` in the `ate-system` namespace. So nothing else in the cluster should be able to open a connection to a sandbox.
+
+A policy on paper only counts if the network plugin enforces it, so I tested it. I started three throwaway pods and had each one try to connect to the worker pod on its three ports:
+
+```console
+== Pod in namespace default, no labels
+port 443: blocked (timed out)
+port 8443: blocked (timed out)
+port 8080: blocked (timed out)
+
+== Pod in namespace kagent, the same namespace as the worker
+port 443: blocked (timed out)
+port 8443: blocked (timed out)
+port 8080: blocked (timed out)
+
+== Control: pod in ate-system labeled app=atenet-router
+port 443: CONNECTED
+port 8443: CONNECTED
+port 8080: CONNECTED
+```
+
+A random pod can't get in. A pod sitting right next to the worker can't get in either. The third pod is the control: it carries the router's label, so the policy lets it through, which proves the ports are open and it's the policy doing the blocking. This was on kind with its default `kindnet` plugin. Run the same check on your own cluster, because not every CNI enforces NetworkPolicy.
+
+The control also shows who you have to trust: anyone who can create pods in `ate-system` can wear that label. Keep that namespace locked down.
 
 **4. No way out unless I say so.** Outbound traffic goes through one egress gateway, and it denies by default. A sandbox reaches a site only if its template selects a policy that lists it. The gateway also knows *which* sandbox is asking, because each one has its own certificate identity, and it logs every request against that identity.
 
