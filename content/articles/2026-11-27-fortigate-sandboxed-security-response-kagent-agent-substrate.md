@@ -2,7 +2,7 @@
 title: "AI-driven, sandboxed security response for FortiGate with kagent and Agent Substrate"
 date: 2026-11-27
 draft: false
-description: "A FortiGate stitch posts a webhook into the lab. A small adapter checks it and wakes a kagent 1.0.1 agent, either with invoke_agent or with an A2A message. The agent reads the firewall through an example FortiGate MCP server, pauses for approval before it changes anything, and goes back to a snapshot when the turn ends. Includes three lab drills and a curl replay for when you have no firewall."
+description: "Late at night, the FortiGate flags a failed login. This post walks through a kagent 1.0.1 agent that wakes up, reads the firewall through an example MCP server, asks before it changes anything, and goes back to sleep. Includes lab drills and a curl replay."
 categories:
   - AI
   - Agents
@@ -24,21 +24,13 @@ author: "Sebastian Maniak"
 
 **By Sebastian Maniak**
 
-The firewall already knows when something looks wrong. I want it to tell the cluster, and I want an agent to look. Then I want that agent to go back to sleep.
+It's a little after 2 a.m. The FortiGate on the lab bench just logged another failed admin login, from an address I don't recognize. Someone has to figure out whether that's a typo, a scanner I forgot, or a person guessing passwords. Right now that someone is me, half awake, reading one log line.
 
-This is the setup in my lab, on kagent 1.0.1. A FortiGate automation stitch sends a webhook. A small adapter checks that the call is real. The adapter wakes one agent. That agent runs in a sandbox, reads the firewall through a FortiGate MCP server, and asks before it changes anything. Between events the sandbox is a snapshot. It is not using CPU.
+I don't want to sit there and sort it out by hand. I also don't want a program left running all night with the firewall's token on it. I want the box to tap the cluster, have an agent look, and then go quiet until the next tap.
 
-You can try the path without touching a network you do not own. The last section is three drills on a lab FortiGate, plus a curl command that replays a sample webhook if you do not have a firewall handy.
+This post is that setup, on kagent 1.0.1. kagent is the controller I run in the cluster to host the agent and keep the conversation. Agent Substrate is the sandbox under that agent, so the session only runs while it has work and is then saved as a snapshot. I'll show how a FortiGate alert reaches the agent, what it's allowed to change, and how you can try the same path on a firewall you own.
 
-The JSON samples are shaped like FortiOS logs. They are not a capture from an attack. The FortiGate MCP server is an example I would run. It is not something kagent ships. The Kubernetes objects are the real kagent 1.0.1 API.
-
-**The short version**
-
-- kagent has no inbound webhook. The stitch needs an adapter.
-- The adapter starts a run with `invoke_agent` on the controller's MCP server. The same controller also speaks A2A, so the adapter can send the event that way instead.
-- The agent calls a FortiGate MCP server for logs and actions. That part stays MCP.
-- Writes pause until a person answers. A callback can ping Slack or open a ticket.
-- After the turn, the agent is suspended. The next event resumes it.
+The next section is the whole trip, from that log line to the person who has to say yes.
 
 ---
 
@@ -70,15 +62,15 @@ flowchart LR
   style sand fill:#FAFAFA,stroke:#E4E4E7,color:#17181C
 ```
 
-Read it left to right, then follow the callback back.
+Read it left to right. Then follow the note that comes back to Slack.
 
-The stitch is the only thing that starts a run. The adapter is the only thing that talks to the controller. The Actor is the only thing that calls tools. The FortiGate MCP server is the only thing that holds a firewall credential. Slack is not a tool the model can call.
+The firewall is the only thing that starts a run. A small adapter in the cluster is the only thing that talks to kagent. The running session, which kagent calls an Actor, is the only thing that calls tools. The FortiGate tool server is the only thing that holds the firewall token. Slack never hears from the sandbox. It hears from the adapter, after kagent says the work is waiting or finished.
 
-kagent will not take the webhook itself. A 1.0.1 controller starts an agent from a Schedule, from `invoke_agent`, or from an A2A message. There is no inbound webhook resource. That is why the adapter exists. If a native trigger shows up later, I still want something in front of it that understands a stitch payload.
+kagent won't take that webhook itself. On 1.0.1 it can start an agent from a schedule, from a tool call named `invoke_agent`, or from an A2A message. There's no inbound webhook. That's why the adapter sits in front. If a built-in trigger shows up later, I still want something there that understands a FortiGate payload.
 
-### Two ways in, one agent
+### Two ways to wake the same agent
 
-A2A is native. Every Agent is reachable through the controller, on port `8083`. A default install serves that on the Service `kagent-controller`.
+Both doors are on the controller, port `8083`. A default install serves that as the Service `kagent-controller`. A2A is built in. Every agent is reachable that way. I still start most runs through MCP, because that's also how I list agents and poll a long turn.
 
 | How the adapter calls | Where |
 |---|---|
@@ -88,11 +80,13 @@ A2A is native. Every Agent is reachable through the controller, on port `8083`. 
 
 The agent card is `GET /agents/kagent/fortigate-responder/.well-known/agent-card.json`. Every A2A call needs the header `A2A-Version: 1.0`. Without it the controller rejects the call.
 
-MCP is not a second runtime. The controller's MCP server is a front door onto that same A2A service. `list_agents` shows the agents the caller can see. `invoke_agent` sends one message. Pass `agent` to start a session, or `session_id` to continue one, and only one of those two. A stable `message_id`, reused with the same agent and the same message, retries the first turn instead of starting another one.
+MCP isn't a second runtime. The controller's MCP server is a front door onto that same A2A service.
 
-A FortiGate stitch will not wait for a model. If the adapter declares the MCP tasks extension, `io.modelcontextprotocol/tasks`, `invoke_agent` returns a task to poll with `tasks/get` instead of blocking. Every poll repeats that declaration.
+`list_agents` shows the agents the caller can see. `invoke_agent` sends one message. Pass `agent` to start a session, or `session_id` to continue one, and only one of those two. A stable `message_id`, reused with the same agent and the same message, retries the first turn instead of starting another one.
 
-The A2A version of the same idea is a `SendMessage` to `/agents/kagent/fortigate-responder`. Leave out `contextId` to start a session. Send the same `contextId` to continue it. `contextId` is the session id. I keep MCP as the path the adapter uses, because that is also how I list agents and poll a long turn. A2A is there when the caller already speaks it.
+A FortiGate stitch won't wait for a model. If the adapter declares the tasks extension, `io.modelcontextprotocol/tasks`, `invoke_agent` returns a task to poll with `tasks/get` instead of blocking. Every poll has to repeat that declaration.
+
+The A2A version of the same call is a `SendMessage` to `/agents/kagent/fortigate-responder`. Leave out `contextId` to start a session. Send the same `contextId` to continue it. That id is the session id. Use this door when the caller already speaks A2A. I use MCP for the lab adapter.
 
 ```json
 {
@@ -117,11 +111,13 @@ The docs for both doors are [Call an agent over A2A](https://kagent.dev/docs/kag
 
 ## Lock the adapter and the controller
 
-The adapter does one job. It checks the caller, turns the body into one event, and hands that event to kagent. It does not call FortiOS. It does not hold the REST token. It does not decide that an address is bad. The agent does that, because the agent can read the surrounding logs.
+The path above is only worth running if a stranger on the network can't pretend to be the firewall.
 
-FortiOS will send the headers you put on the webhook action. It will not sign the body for you. The check the stitch can actually do is TLS, plus a shared secret in a header. The adapter compares that secret in constant time and answers 401 when it is missing or wrong. mTLS belongs at the ingress if you want a certificate. I pick one and I fail closed.
+The adapter has one job. It checks the caller, turns the body into one event, and hands that event to kagent. It doesn't call FortiOS, and it doesn't hold the REST token. It also doesn't decide that an address is bad. The agent does that, because the agent can read the logs around the event.
 
-The controller's default auth mode is `insecure`. In that mode the caller names itself with `X-User-Id`, and a call with no header runs as `admin@kagent.dev`. That is fine on a laptop. It is the wrong mode once a webhook can reach the cluster.
+FortiOS will send the headers you put on the webhook action. It won't sign the body for you. The check the stitch can actually do is TLS, plus a shared secret in a header. The adapter compares that secret in constant time and answers 401 when it's missing or wrong. mTLS belongs at the ingress if you want a certificate. I pick one and fail closed.
+
+The controller's default auth mode is `insecure`. In that mode the caller names itself with `X-User-Id`, and a call with no header runs as `admin@kagent.dev`. That's fine on a laptop. It's the wrong mode once a webhook can reach the cluster.
 
 I set `config.server.auth.mode` to `trusted-proxy`. The caller must send `Authorization: Bearer`. The controller reads the identity from the claim in `config.server.auth.userIdClaim`, which defaults to `sub`. It does not check the token's signature. The proxy in front of port `8083` has to do that. A pod that can open the port directly can still present a token it wrote, so a NetworkPolicy that admits only the adapter is part of the control.
 
@@ -129,13 +125,21 @@ I set `config.server.auth.mode` to `trusted-proxy`. The caller must send `Author
 
 ## The agent sleeps, and it asks before it writes
 
+Once the call can get in, the next question is what the agent is doing the rest of the night.
+
 Agent Substrate runs the session as an Actor in its own sandbox. The default class is gVisor. A worker pool can use `microvm` when you want a virtual machine instead. I use the harness named `kagent-default`, which is the kagent runtime from a normal install.
 
 When a turn finishes, a lifecycle worker suspends the Actor to a snapshot and frees the worker. The next event resumes that snapshot. A suspended Actor costs nothing.
 
-Approval uses the same pause. On the write tools I set `requireApproval: true`. That flag belongs to the tool binding, not to a single tool name. When the model wants one of those tools, the task moves to `INPUT_REQUIRED` before the call runs. The Actor is suspended while it waits, so I can answer an hour later and it continues.
+Approval uses that same pause. On the write tools I set `requireApproval: true`. The flag belongs to the set of tools, not to one tool name.
 
-The client has to be able to answer. On A2A, send `A2A-Extensions: https://kagent.dev/extensions/hitl/v1` with the message. The pause comes back as a `tool_approval_request`. Answer on the same task with a `tool_approval_response`. If you forget the header, the task still stops, and you have no id to answer with. An MCP client that declared the tasks extension sees the pause as `input_required` and answers with `tasks/update`. The `kagent` CLI reports that input is required and cannot answer it, so I do not point approval at the CLI.
+When the model wants one of those tools, the task moves to `INPUT_REQUIRED` before the call runs. The Actor is suspended while it waits, so I can answer an hour later and it continues.
+
+The client has to be able to answer, or the pause just sits there.
+
+On A2A, send `A2A-Extensions: https://kagent.dev/extensions/hitl/v1` with the message. The pause comes back as a `tool_approval_request`. Answer on the same task with a `tool_approval_response`. If you forget the header, the task still stops, and you have no id to answer with.
+
+An MCP client that declared the tasks extension sees the pause as `input_required` and answers with `tasks/update`. The `kagent` CLI reports that input is required and can't answer it, so I don't point approval at the CLI.
 
 How that pause works is written up in [Human in the loop](https://kagent.dev/docs/kagent/latest/agents/human-in-the-loop/).
 
@@ -143,7 +147,9 @@ How that pause works is written up in [Human in the loop](https://kagent.dev/doc
 
 kagent can POST to a webhook when a task reaches a state worth knowing about. The states are `INPUT_REQUIRED`, `AUTH_REQUIRED`, and the terminal ones: `COMPLETED`, `FAILED`, `CANCELED`, and `REJECTED`. Ordinary progress does not fire it.
 
-Register the URL on the A2A send, in `configuration.taskPushNotificationConfig`, or add it later while the task is still active. The body is a `statusUpdate` with the task id, the context id, and the state. The receiver then calls authenticated `GetTask` for the real transcript. Deliveries can arrive twice or out of order. `GetTask` is the source of truth. Any HTTP 2xx acknowledges the POST. A redirect counts as a failure, so register the final URL.
+Register the URL on the A2A send, in `configuration.taskPushNotificationConfig`, or add it later while the task is still active.
+
+The body is a `statusUpdate` with the task id, the context id, and the state. The receiver then calls authenticated `GetTask` for the real transcript. Deliveries can arrive twice or out of order, so `GetTask` is the source of truth. Any HTTP 2xx acknowledges the POST. A redirect counts as a failure, so register the final URL.
 
 By default the POST has no `Authorization` header, and `/.well-known/jwks.json` returns 404. To sign them, put an Ed25519 key in a Secret and set `controller.push.signing.secretName`. The issuer is `config.push.issuer`. Callbacks also refuse plain HTTP and private addresses unless you set `config.push.allowHttp` and `config.push.allowPrivateNetworks`. I only turn those on for a receiver inside the lab network.
 
@@ -152,6 +158,8 @@ The adapter is that receiver. It turns `INPUT_REQUIRED` into a Slack approval, a
 ---
 
 ## The two objects I apply
+
+The behavior above is two Kubernetes objects. The adapter is ordinary code. It isn't one of them.
 
 The FortiGate MCP server is mine to build. I run it in the cluster and point a `RemoteMCPServer` at it. The API group is `api.kagent.dev/v1alpha3`. `description` and `url` are required. `protocol` is `STREAMABLE_HTTP` or `SSE`. I use `STREAMABLE_HTTP`.
 
@@ -256,15 +264,15 @@ I keep one agent for the lab. The binding is there when a single prompt gets too
 
 ## Three events
 
+With the agent applied, these are the three things I want it to catch. The samples are shaped like FortiOS logs. They aren't a capture from an attack, and the tool names are the example catalog from above, not tools kagent ships.
+
 | Event | What the agent decides | What it may change, after you approve |
 |---|---|---|
 | Repeated failed admin or SSL-VPN logins | A burst, or one typo | Add that source to `grp-quarantine` |
 | Port scan, or a spike to an odd destination | Your scanner, an outside scan, or an internal host | Quarantine an outside scanner. Do not auto-block an internal host |
 | A wide policy, or a change outside the window | Who changed it, and whether access got wider | Disable the policy. Never delete it. Admin edits are report-only |
 
-The adapter keeps one session per incident, keyed by device, event family, and source. A second failure from the same address resumes the snapshot. A new source starts a new session.
-
-The JSON is the body I would template on the stitch. It is not a packet I captured.
+The adapter keeps one session per incident, keyed by device, event family, and source. A second failure from the same address resumes the snapshot. A new source starts a new session. The JSON under each heading is the body I'd put on the stitch.
 
 ### Failed logins
 
@@ -452,6 +460,8 @@ An admin change takes the other branch on purpose. `fg_list_admins` can show the
 
 ## Try it in the lab
 
+The samples above are shapes. This is how I make the real logs show up, or skip the firewall and replay a webhook.
+
 > Run this only against a FortiGate you own, or one you are explicitly allowed to test. The commands below target a lab firewall and a lab VM. Do not point them at a network that is not yours.
 
 Set the lab address once, and do not reuse it for anything else:
@@ -607,14 +617,9 @@ If you approved a quarantine, the agent has no delete tool. Remove the address f
 
 ## What I will not automate
 
-I will automate the wake-up, the reading, and the recommendation. I will automate a quarantine only after a person accepts that exact tool call. I will not automate deletes, admin edits, firmware, or a config restore. Those tools are absent, not merely discouraged in the prompt. A prompt is a request. A missing tool is a wall.
+I'll automate the wake-up, the reading, and the recommendation. I'll automate a quarantine only after a person accepts that exact tool call. I won't automate deletes, admin edits, firmware, or a config restore.
 
-The other walls are the ones Agent Substrate already gives this agent:
-
-- The Actor's system calls hit gVisor, or a microVM if the pool is built that way.
-- The sandbox has no route to the firewall. It has a route to the MCP server and the model. The credential stays on the MCP server.
-- The controller does not accept a stitch directly, and it does not accept an `X-User-Id` from the adapter. The adapter proves itself to the proxy. The proxy is the only path to port `8083`.
-- A finished turn, and a turn that is waiting on me, both cost nothing until the next event.
+Those tools aren't in the binding. A prompt is a request. A missing tool is a wall. The sandbox is the other wall: gVisor or a microVM, a route only to the MCP server and the model, and no work at all between events.
 
 Related reading:
 
